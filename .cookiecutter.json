@@ -1,0 +1,27 @@
+{
+  "cookiecutter": {
+    "codeowner_github_usernames": "@jdrew82",
+    "full_name": "Justin Drew",
+    "email": "info@networktocode.com",
+    "github_org": "nautobot",
+    "system_of_record": "Citrix ADM",
+    "system_of_record_camel": "CitrixAdm",
+    "system_of_record_slug": "citrix_adm",
+    "plugin_name": "nautobot_ssot_citrix_adm",
+    "verbose_name": "Nautobot SSoT Citrix ADM",
+    "plugin_slug": "nautobot-ssot-citrix-adm",
+    "project_slug": "nautobot-plugin-ssot-citrix-adm",
+    "repo_url": "https://github.com/nautobot/nautobot-plugin-ssot-citrix-adm",
+    "base_url": "ssot-citrix-adm",
+    "min_nautobot_version": "1.5.0",
+    "max_nautobot_version": "1.9999",
+    "nautobot_version": "latest",
+    "camel_name": "NautobotSsotCitrixAdm",
+    "project_short_description": "Nautobot SSoT Citrix ADM",
+    "version": "0.1.0",
+    "model_class_name": "None",
+    "open_source_license": "Apache-2.0",
+    "_template": "gh:networktocode-llc/cookiecutter-ntc",
+    "_output_dir": "/Users/justin.drew/Projects/Customers/corn"
+  }
+}
