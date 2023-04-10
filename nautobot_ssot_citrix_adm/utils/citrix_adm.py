@@ -1,1 +1,88 @@
 """Utility functions for working with Citrix ADM."""
+from typing import Union, Optional
+import requests
+
+
+# based on client found at https://github.com/slauger/python-nitro
+class CitrixNitroClient:
+    """Client for interacting with Citrix ADM NITRO API."""
+
+    def __init__(self, base_url: str, user: str, password: str, verify: bool = True):
+        """Initialize NITRO client.
+
+        Args:
+            base_url (str): Base URL for MAS/ADM API. Must include schema, http(s).
+            user (str): _description_
+            password (str): _description_
+            verify (bool, optional): _description_. Defaults to True.
+        """
+        self.url = base_url
+        self.username = user
+        self.password = password
+        self.headers = {
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+        self.verify = verify
+
+    def login(self):
+        """Login to ADM/MAS and set authorization token to enable further communication."""
+        url = "config"
+        objecttype = "login"
+        login = {"login": {"username": self.username, "password": self.password}}
+        payload = f"object={login}"
+        response = self.request(method="POST", endpoint=url, objecttype=objecttype, data=payload)
+        self.headers["Set-Cookie"] = response.text
+
+    def logout(self):
+        """Best practice to logout when session is complete."""
+        url = "config"
+        objecttype = "logout"
+        self.request(method="POST", endpoint=url, objecttype=objecttype)
+
+    def request(  # pylint: disable=too-many-arguments
+        self,
+        method: str,
+        endpoint: str,
+        objecttype: str = "",
+        objectname: str = "",
+        params: Optional[Union[str, dict]] = None,
+        data: Optional[str] = None,
+    ):
+        """Perform request of specified method to endpoint.
+
+        Args:
+            method (str): HTTP method to use with request, ie GET, PUT, POST, etc.
+            endpoint (str): API endpoint to query.
+            objecttype (str, optional): Specific object type to query the API about. Defaults to "".
+            objectname (str, optional): Specifc object to query the API about. Defaults to "".
+            params (Optional[Union[str, dict]], optional): Additional parameters for the request. Defaults to None.
+            data (Optional[str], optional): Addiontal data payload for the request. Defaults to None.
+
+        Returns:
+            _type_: _description_
+        """
+        url = self.url + "/nitro/v1/" + endpoint + "/" + objecttype
+
+        if objectname:
+            url += "/" + objectname
+
+        if params:
+            url += "?"
+
+            if isinstance(params, dict):
+                for key, value in params.iteritems():
+                    url += key + "=" + value
+            else:
+                url += params
+
+        method_callback = getattr(requests, method)
+
+        _result = method_callback(
+            url,
+            data=data,
+            headers=self.headers,
+            verify=self.verify,
+        )
+        _result.raise_for_status()
+        return _result
