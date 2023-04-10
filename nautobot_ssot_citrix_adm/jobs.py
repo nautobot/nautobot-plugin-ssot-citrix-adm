@@ -1,10 +1,14 @@
 """Jobs for Citrix ADM SSoT integration."""
 
-from diffsync import DiffSyncFlags
+from django.conf import settings
+from diffsync.enum import DiffSyncFlags
 from nautobot.extras.jobs import BooleanVar, Job
 from nautobot_ssot.jobs.base import DataSource, DataTarget
 from nautobot_ssot_citrix_adm.diffsync.adapters import citrix_adm, nautobot
+from nautobot_ssot_citrix_adm.utils.citrix_adm import CitrixNitroClient
 
+
+PLUGIN_CFG = settings.PLUGINS_CONFIG["nautobot_ssot_citrix_adm"]
 
 name = "Citrix ADM SSoT"  # pylint: disable=invalid-name
 
@@ -39,7 +43,13 @@ class CitrixAdmDataSource(DataSource, Job):
 
     def load_source_adapter(self):
         """Load data from Citrix ADM into DiffSync models."""
-        self.source_adapter = citrix_adm.CitrixAdmAdapter(job=self, sync=self.sync)
+        client = CitrixNitroClient(
+            base_url=PLUGIN_CFG["base_url"],
+            user=PLUGIN_CFG["username"],
+            password=PLUGIN_CFG["password"],
+            verify=PLUGIN_CFG["verify"],
+        )
+        self.source_adapter = citrix_adm.CitrixAdmAdapter(job=self, sync=self.sync, client=client)
         self.source_adapter.load()
 
     def load_target_adapter(self):
@@ -83,8 +93,14 @@ class CitrixAdmDataTarget(DataTarget, Job):
 
     def load_target_adapter(self):
         """Load data from Citrix ADM into DiffSync models."""
-        self.target_adapter = citrix_adm.CitrixAdmAdapter(job=self, sync=self.sync)
+        client = CitrixNitroClient(
+            base_url=PLUGIN_CFG["base_url"],
+            user=PLUGIN_CFG["username"],
+            password=PLUGIN_CFG["password"],
+            verify=PLUGIN_CFG["verify"],
+        )
+        self.target_adapter = citrix_adm.CitrixAdmAdapter(job=self, sync=self.sync, client=client)
         self.target_adapter.load()
 
 
-jobs = [CitrixAdmDataSource, CitrixAdmDataTarget]
+jobs = [CitrixAdmDataSource]

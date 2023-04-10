@@ -140,8 +140,10 @@ PLUGINS_CONFIG = {
     "nautobot_ssot": {
         "hide_example_jobs": True,
     },
-    # 'nautobot_ssot_citrix_adm': {
-    #     'foo': 'bar',
-    #     'buzz': 'bazz'
-    # }
+    "nautobot_ssot_citrix_adm": {
+        "base_url": os.getenv("NAUTOBOT_SSOT_CITRIX_BASE_URL", ""),
+        "username": os.getenv("NAUTOBOT_SSOT_CITRIX_USERNAME", ""),
+        "password": os.getenv("NAUTOBOT_SSOT_CITRIX_PASSWORD", ""),
+        "verify": os.getenv("NAUTOBOT_SSOT_CITRIX_VERIFY", True),
+    },
 }
