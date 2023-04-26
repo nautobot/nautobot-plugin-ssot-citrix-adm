@@ -1,6 +1,23 @@
 """Nautobot SSoT Citrix ADM DiffSync models for Nautobot SSoT Citrix ADM SSoT."""
 
-from nautobot_ssot_citrix_adm.diffsync.models.base import Device
+from nautobot_ssot_citrix_adm.diffsync.models.base import Datacenter, Device, Port, Address
+
+
+class CitrixAdmDatacenter(Datacenter):
+    """Citrix ADM implementation of Datacenter DiffSync model."""
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create Site in Citrix ADM from Datacenter object."""
+        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+
+    def update(self, attrs):
+        """Update Site in Citrix ADM from Datacenter object."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete Site in Citrix ADM from Datacenter object."""
+        return self
 
 
 class CitrixAdmDevice(Device):
@@ -8,13 +25,47 @@ class CitrixAdmDevice(Device):
 
     @classmethod
     def create(cls, diffsync, ids, attrs):
-        """Create Device in Citrix ADM from NautobotSsotCitrixAdmDevice object."""
+        """Create Device in Citrix ADM from Device object."""
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
-        """Update Device in Citrix ADM from NautobotSsotCitrixAdmDevice object."""
+        """Update Device in Citrix ADM from Device object."""
         return super().update(attrs)
 
     def delete(self):
-        """Delete Device in Citrix ADM from NautobotSsotCitrixAdmDevice object."""
+        """Delete Device in Citrix ADM from Device object."""
+        return self
+
+
+class CitrixAdmPort(Port):
+    """Citrix ADM implementation of Port DiffSync model."""
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create Interface in Citrix ADM from Port object."""
+        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+
+    def update(self, attrs):
+        """Update Interface in Citrix ADM from Port object."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete Interface in Citrix ADM from Port object."""
+        return self
+
+
+class CitrixAdmAddress(Address):
+    """Citrix ADM implementation of Address DiffSync model."""
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create IP Address in Citrix ADM from Address object."""
+        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+
+    def update(self, attrs):
+        """Update IP Address in Citrix ADM from Address object."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete IP Address in Citrix ADM from Address object."""
         return self
