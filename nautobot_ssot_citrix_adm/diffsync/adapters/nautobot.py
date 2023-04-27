@@ -1,10 +1,12 @@
 """Nautobot Adapter for Citrix ADM SSoT plugin."""
 
 from diffsync import DiffSync
-from nautobot.dcim.models import Device, Site
+from diffsync.exceptions import ObjectNotFound
+from nautobot.dcim.models import Device, Interface, Site
 from nautobot_ssot_citrix_adm.diffsync.models.nautobot import (
     NautobotDatacenter,
     NautobotDevice,
+    NautobotPort,
 
 
 class NautobotAdapter(DiffSync):
@@ -12,6 +14,7 @@ class NautobotAdapter(DiffSync):
 
     datacenter = NautobotDatacenter
     device = NautobotDevice
+    port = NautobotPort
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize Nautobot.
@@ -52,7 +55,27 @@ class NautobotAdapter(DiffSync):
             )
             self.add(new_dev)
 
+    def load_ports(self):
+        """Load Interfaces from Nautobot into DiffSync models."""
+        for intf in Interface.objects.all():
+            try:
+                dev = self.get(self.device, intf.device.name)
+                new_intf = self.port(
+                    name=intf.name,
+                    device=intf.device.name,
+                    status=intf.status.name,
+                    description=intf.description,
+                    uuid=intf.id,
+                )
+                self.add(new_intf)
+                dev.add_child(new_intf)
+            except ObjectNotFound:
+                self.job.log_warning(
+                    message=f"Unable to find {intf.device.name} loaded so skipping loading port {intf.name}."
+                )
+
     def load(self):
         """Load data from Nautobot into DiffSync models."""
         self.load_sites()
         self.load_devices()
+        self.load_ports()

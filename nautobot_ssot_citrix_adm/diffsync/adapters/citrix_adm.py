@@ -5,6 +5,8 @@ from diffsync.exceptions import ObjectNotFound
 from nautobot_ssot_citrix_adm.diffsync.models.citrix_adm import (
     CitrixAdmDatacenter,
     CitrixAdmDevice,
+    CitrixAdmPort,
+)
 from nautobot_ssot_citrix_adm.utils.citrix_adm import parse_version, CitrixNitroClient
 
 
@@ -13,6 +15,7 @@ class CitrixAdmAdapter(DiffSync):
 
     datacenter = CitrixAdmDatacenter
     device = CitrixAdmDevice
+    port = CitrixAdmPort
 
     def __init__(self, *args, job=None, sync=None, client: CitrixNitroClient, **kwargs):
         """Initialize Citrix ADM.
@@ -68,7 +71,29 @@ class CitrixAdmAdapter(DiffSync):
                     uuid=None,
                 )
                 self.add(new_dev)
+
+    def load_ports(self):
+        """Load ports from Citrix ADM into DiffSync models."""
+        ports = self.conn.get_ports()
+        for port in ports:
+            try:
+                dev = self.get(self.device, port["hostname"])
+                new_port = self.port(
+                    name=port["devicename"],
+                    device=port["hostname"],
+                    status="Active" if port.get("state") == "ENABLED" else "Offline",
+                    description=port["description"],
+                    uuid=None,
+                )
+                self.add(new_port)
+                dev.add_child(new_port)
+            except ObjectNotFound:
+                self.job.log_warning(
+                    message=f"Unable to find device {port['hostname']} so skipping loading of port {port['devicename']}."
+                )
+
     def load(self):
         """Load data from Citrix ADM into DiffSync models."""
         self.load_sites()
         self.load_devices()
+        self.load_ports()

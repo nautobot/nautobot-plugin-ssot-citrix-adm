@@ -1,6 +1,5 @@
 """Test Citrix ADM adapter."""
 
-import json
 import uuid
 from unittest.mock import MagicMock
 
@@ -9,7 +8,7 @@ from nautobot.extras.models import Job, JobResult
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_citrix_adm.diffsync.adapters.citrix_adm import CitrixAdmAdapter
 from nautobot_ssot_citrix_adm.jobs import CitrixAdmDataSource
-from nautobot_ssot_citrix_adm.tests.fixtures import SITE_FIXTURE, DEVICE_FIXTURE
+from nautobot_ssot_citrix_adm.tests.fixtures import SITE_FIXTURE, DEVICE_FIXTURE, PORT_FIXTURE
 
 
 class TestCitrixAdmAdapterTestCase(TransactionTestCase):
@@ -22,6 +21,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
         self.citrix_adm_client = MagicMock()
         self.citrix_adm_client.get_sites.return_value = SITE_FIXTURE["mps_datacenter"]
         self.citrix_adm_client.get_devices.return_value = DEVICE_FIXTURE["managed_device"]
+        self.citrix_adm_client.get_ports.return_value = PORT_FIXTURE["ns_network_interface"]
 
         self.job = CitrixAdmDataSource()
         self.job.job_result = JobResult.objects.create(
@@ -40,4 +40,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
             {dev["hostname"] for dev in DEVICE_FIXTURE["managed_device"]},
             {dev.get_unique_id() for dev in self.citrix_adm.get_all("device")},
         )
-        # )
+        self.assertEqual(
+            {f"{port['devicename']}__{port['hostname']}" for port in PORT_FIXTURE["ns_network_interface"]},
+            {port.get_unique_id() for port in self.citrix_adm.get_all("port")},
+        )

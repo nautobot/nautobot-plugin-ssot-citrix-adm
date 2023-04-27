@@ -1,5 +1,5 @@
 """DiffSyncModel subclasses for Nautobot-to-Citrix ADM data sync."""
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 from diffsync import DiffSyncModel
 
@@ -33,7 +33,7 @@ class Device(DiffSyncModel):
         "status",
         "version",
     )
-    _children = {}
+    _children = {"port": "ports"}
 
     name: str
     model: Optional[str]
@@ -41,6 +41,7 @@ class Device(DiffSyncModel):
     site: Optional[str]
     status: Optional[str]
     version: Optional[str]
+    ports: Optional[List["Port"]] = []
 
     uuid: Optional[UUID]
 

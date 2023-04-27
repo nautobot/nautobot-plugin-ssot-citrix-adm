@@ -109,6 +109,15 @@ class CitrixNitroClient:
         result = self.request("GET", endpoint, objecttype, params=params)
         return result[objecttype]
 
+    def get_ports(self):
+        """Gather all ports registered to devices in MAS/ADM instance."""
+        endpoint = "config"
+        objecttype = "ns_network_interface"
+        params = {"attrs": ["devicename,ns_ip_address,state,hostname,description"]}
+        result = self.request("GET", endpoint, objecttype, params=params)
+        return result[objecttype]
+
+
 def parse_version(version: str):
     """Parse Device version from string.
 

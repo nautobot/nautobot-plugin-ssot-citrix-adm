@@ -1,0 +1,48 @@
+{
+    "errorcode": 0,
+    "message": "Done",
+    "operation": "get",
+    "resourceType": "ns_network_interface",
+    "username": "a1pnautobot",
+    "tenant_name": "Owner",
+    "tenant_id": "ed2aa84e-b157-4a2b-9a3e-489149fb7842",
+    "resrc_total_count": 0,
+    "resourceName": "",
+    "ns_network_interface": [
+        {
+            "devicename": "10/1",
+            "ns_ip_address": "172.18.77.79",
+            "state": "ENABLED",
+            "hostname": "UYLLBFRCXM55-EA",
+            "description": ""
+        },
+        {
+            "devicename": "10/1",
+            "ns_ip_address": "10.62.7.168",
+            "state": "ENABLED",
+            "hostname": "OLQE-WHOO-KAL-WKH-SndJhcc3-X",
+            "description": ""
+        },
+        {
+            "devicename": "1/1",
+            "ns_ip_address": "10.220.11.138",
+            "state": "ENABLED",
+            "hostname": "AGSPAMKMRN53",
+            "description": ""
+        },
+        {
+            "devicename": "1/2",
+            "ns_ip_address": "10.220.11.139",
+            "state": "ENABLED",
+            "hostname": "AGSPAMKMRN53",
+            "description": ""
+        },
+        {
+            "devicename": "10/1",
+            "ns_ip_address": "10.62.7.112",
+            "state": "ENABLED",
+            "hostname": "OGI-MSCI-IMS-Mctdgj-Pqsf-M",
+            "description": ""
+        }
+    ]
+}
