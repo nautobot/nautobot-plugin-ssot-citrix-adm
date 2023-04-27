@@ -28,19 +28,26 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
             name=self.job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
         )
         self.citrix_adm = CitrixAdmAdapter(job=self.job, sync=None, client=self.citrix_adm_client)
-
-    def test_data_loading(self):
-        """Test Nautobot SSoT Citrix ADM load() function."""
         self.citrix_adm.load()
+
+    def test_load_sites(self):
+        """Test Nautobot SSoT Citrix ADM load_sites() function."""
         self.assertEqual(
             {f"{site['name']}__{site['region']}" for site in SITE_FIXTURE["mps_datacenter"]},
             {site.get_unique_id() for site in self.citrix_adm.get_all("datacenter")},
         )
+
+    def test_load_devices(self):
+        """Test the Nautobot SSoT Citrix ADM load_devices() function."""
         self.assertEqual(
             {dev["hostname"] for dev in DEVICE_FIXTURE["managed_device"]},
             {dev.get_unique_id() for dev in self.citrix_adm.get_all("device")},
         )
-        self.assertEqual(
-            {f"{port['devicename']}__{port['hostname']}" for port in PORT_FIXTURE["ns_network_interface"]},
-            {port.get_unique_id() for port in self.citrix_adm.get_all("port")},
-        )
+
+    def test_load_ports(self):
+        """Test the Nautobot SSoT Citrix ADM load_ports() function."""
+        mgmt_ports = list({f"Management__{port['hostname']}" for port in PORT_FIXTURE["ns_network_interface"]})
+        non_mgmt_ports = [f"{port['devicename']}__{port['hostname']}" for port in PORT_FIXTURE["ns_network_interface"]]
+        expected_ports = non_mgmt_ports + mgmt_ports
+        actual_ports = [port.get_unique_id() for port in self.citrix_adm.get_all("port")]
+        self.assertEqual(sorted(expected_ports), sorted(actual_ports))
