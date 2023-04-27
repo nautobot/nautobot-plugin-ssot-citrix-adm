@@ -25,7 +25,7 @@
         },
         {
             "gateway": "48.14.5.5",
-            "mgmt_ip_address": "85.52.0.561",
+            "mgmt_ip_address": "85.52.0.128",
             "description": "",
             "serialnumber": "44WDBA1XS3",
             "display_name": "10.62.7.168-10.62.7.169",
