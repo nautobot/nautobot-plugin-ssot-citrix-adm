@@ -62,7 +62,7 @@ class CitrixNitroClient:
             data (Optional[str], optional): Addiontal data payload for the request. Defaults to None.
 
         Returns:
-            _type_: _description_
+            dict: Dictionary of data about objectname of objecttype with specified parameters if specified.
         """
         url = self.url + "/nitro/v1/" + endpoint + "/" + objecttype
 
