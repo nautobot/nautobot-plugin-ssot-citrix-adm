@@ -1,4 +1,5 @@
 """Utility functions for working with Citrix ADM."""
+import re
 from typing import Union, Optional
 import requests
 
@@ -108,3 +109,15 @@ class CitrixNitroClient:
         result = self.request("GET", endpoint, objecttype, params=params)
         return result[objecttype]
 
+def parse_version(version: str):
+    """Parse Device version from string.
+
+    Args:
+        version (str): Version string from device API query.
+    """
+    result = ""
+    match_pattern = r"NetScaler\s(?P<version>NS\d+\.\d+: Build\s\d+\.\d+\.\w+)"
+    match = re.match(pattern=match_pattern, string=version)
+    if match:
+        result = match.group("version")
+    return result
