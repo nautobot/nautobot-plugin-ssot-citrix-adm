@@ -5,6 +5,7 @@ from diffsync.exceptions import ObjectNotFound
 from nautobot_ssot_citrix_adm.diffsync.models.citrix_adm import (
     CitrixAdmDatacenter,
     CitrixAdmDevice,
+from nautobot_ssot_citrix_adm.utils.citrix_adm import parse_version, CitrixNitroClient
 
 
 class CitrixAdmAdapter(DiffSync):
@@ -13,13 +14,13 @@ class CitrixAdmAdapter(DiffSync):
     datacenter = CitrixAdmDatacenter
     device = CitrixAdmDevice
 
-    def __init__(self, *args, job=None, sync=None, client=None, **kwargs):
+    def __init__(self, *args, job=None, sync=None, client: CitrixNitroClient, **kwargs):
         """Initialize Citrix ADM.
 
         Args:
             job (object, optional): Citrix ADM job. Defaults to None.
             sync (object, optional): Citrix ADM DiffSync. Defaults to None.
-            client (object): Citrix ADM API client connection object.
+            client (CitrixNitroClient): Citrix ADM API client connection object.
         """
         super().__init__(*args, **kwargs)
         self.job = job
