@@ -9,3 +9,4 @@ def load_json(path):
 
 
 SITE_FIXTURE = load_json("./nautobot_ssot_citrix_adm/tests/fixtures/get_sites.json")
+DEVICE_FIXTURE = load_json("./nautobot_ssot_citrix_adm/tests/fixtures/get_devices.json")

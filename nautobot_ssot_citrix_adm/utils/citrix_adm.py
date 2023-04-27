@@ -95,3 +95,16 @@ class CitrixNitroClient:
         params = {"attrs": ["city,zipcode,type,name,region,country,latitude,longitude,id"]}
         result = self.request("GET", endpoint, objecttype, params=params)
         return result[objecttype]
+
+    def get_devices(self):
+        """Gather all devices registered to MAS/ADM instance."""
+        endpoint = "config"
+        objecttype = "managed_device"
+        params = {
+            "attrs": [
+                "ip_address,hostname,gateway,mgmt_ip_address,description,serialnumber,type,display_name,netmask,datacenter_id,version,instance_state"
+            ]
+        }
+        result = self.request("GET", endpoint, objecttype, params=params)
+        return result[objecttype]
+

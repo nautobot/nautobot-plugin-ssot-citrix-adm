@@ -9,7 +9,7 @@ from nautobot.extras.models import Job, JobResult
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_citrix_adm.diffsync.adapters.citrix_adm import CitrixAdmAdapter
 from nautobot_ssot_citrix_adm.jobs import CitrixAdmDataSource
-from nautobot_ssot_citrix_adm.tests.fixtures import SITE_FIXTURE
+from nautobot_ssot_citrix_adm.tests.fixtures import SITE_FIXTURE, DEVICE_FIXTURE
 
 
 class TestCitrixAdmAdapterTestCase(TransactionTestCase):
@@ -21,6 +21,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
         """Initialize test case."""
         self.citrix_adm_client = MagicMock()
         self.citrix_adm_client.get_sites.return_value = SITE_FIXTURE["mps_datacenter"]
+        self.citrix_adm_client.get_devices.return_value = DEVICE_FIXTURE["managed_device"]
 
         self.job = CitrixAdmDataSource()
         self.job.job_result = JobResult.objects.create(
@@ -35,8 +36,8 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
             {f"{site['name']}__{site['region']}" for site in SITE_FIXTURE["mps_datacenter"]},
             {site.get_unique_id() for site in self.citrix_adm.get_all("datacenter")},
         )
-        # self.citrix_adm.load()
-        # self.assertEqual(
-        #     {site["name"] for site in SITE_FIXTURE},
-        #     {site.get_unique_id() for site in self.citrix_adm.get_all("site")},
+        self.assertEqual(
+            {dev["hostname"] for dev in DEVICE_FIXTURE["managed_device"]},
+            {dev.get_unique_id() for dev in self.citrix_adm.get_all("device")},
+        )
         # )
