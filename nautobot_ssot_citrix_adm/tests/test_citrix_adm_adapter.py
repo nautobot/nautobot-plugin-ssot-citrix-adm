@@ -9,15 +9,7 @@ from nautobot.extras.models import Job, JobResult
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_citrix_adm.diffsync.adapters.citrix_adm import CitrixAdmAdapter
 from nautobot_ssot_citrix_adm.jobs import CitrixAdmDataSource
-
-
-def load_json(path):
-    """Load a json file."""
-    with open(path, encoding="utf-8") as file:
-        return json.loads(file.read())
-
-
-SITE_FIXTURE = []
+from nautobot_ssot_citrix_adm.tests.fixtures import SITE_FIXTURE
 
 
 class TestCitrixAdmAdapterTestCase(TransactionTestCase):
@@ -28,7 +20,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
     def setUp(self):
         """Initialize test case."""
         self.citrix_adm_client = MagicMock()
-        self.citrix_adm_client.get_sites.return_value = SITE_FIXTURE
+        self.citrix_adm_client.get_sites.return_value = SITE_FIXTURE["mps_datacenter"]
 
         self.job = CitrixAdmDataSource()
         self.job.job_result = JobResult.objects.create(
@@ -38,6 +30,11 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
 
     def test_data_loading(self):
         """Test Nautobot SSoT Citrix ADM load() function."""
+        self.citrix_adm.load()
+        self.assertEqual(
+            {f"{site['name']}__{site['region']}" for site in SITE_FIXTURE["mps_datacenter"]},
+            {site.get_unique_id() for site in self.citrix_adm.get_all("datacenter")},
+        )
         # self.citrix_adm.load()
         # self.assertEqual(
         #     {site["name"] for site in SITE_FIXTURE},

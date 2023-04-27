@@ -87,3 +87,11 @@ class CitrixNitroClient:
         )
         _result.raise_for_status()
         return _result
+
+    def get_sites(self):
+        """Gather all sites configured on MAS/ADM instance."""
+        endpoint = "config"
+        objecttype = "mps_datacenter"
+        params = {"attrs": ["city,zipcode,type,name,region,country,latitude,longitude,id"]}
+        result = self.request("GET", endpoint, objecttype, params=params)
+        return result[objecttype]
