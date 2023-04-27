@@ -78,10 +78,9 @@ class CitrixNitroClient:
             else:
                 url += params
 
-        method_callback = getattr(requests, method)
-
-        _result = method_callback(
-            url,
+        _result = requests.request(
+            method=method,
+            url=url,
             data=data,
             headers=self.headers,
             verify=self.verify,
