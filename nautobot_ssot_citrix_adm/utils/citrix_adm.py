@@ -33,7 +33,7 @@ class CitrixNitroClient:
         login = {"login": {"username": self.username, "password": self.password}}
         payload = f"object={login}"
         response = self.request(method="POST", endpoint=url, objecttype=objecttype, data=payload)
-        session_id = response.text["login"]["sessionid"]
+        session_id = response["login"][0]["sessionid"]
         self.headers["Set-Cookie"] = f"SESSID={session_id}; path=/; SameSite=Lax; secure; HttpOnly"
 
     def logout(self):
@@ -73,7 +73,7 @@ class CitrixNitroClient:
             url += "?"
 
             if isinstance(params, dict):
-                for key, value in params.iteritems():
+                for key, value in params.items():
                     url += key + "=" + value
             else:
                 url += params
@@ -86,7 +86,7 @@ class CitrixNitroClient:
             verify=self.verify,
         )
         _result.raise_for_status()
-        return _result
+        return _result.json()
 
     def get_sites(self):
         """Gather all sites configured on MAS/ADM instance."""
