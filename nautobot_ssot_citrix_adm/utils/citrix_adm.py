@@ -32,7 +32,8 @@ class CitrixNitroClient:
         login = {"login": {"username": self.username, "password": self.password}}
         payload = f"object={login}"
         response = self.request(method="POST", endpoint=url, objecttype=objecttype, data=payload)
-        self.headers["Set-Cookie"] = response.text
+        session_id = response.text["login"]["sessionid"]
+        self.headers["Set-Cookie"] = f"SESSID={session_id}; path=/; SameSite=Lax; secure; HttpOnly"
 
     def logout(self):
         """Best practice to logout when session is complete."""
