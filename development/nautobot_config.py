@@ -4,7 +4,7 @@ import os
 import sys
 
 from nautobot.core.settings import *  # noqa: F403
-from nautobot.core.settings_funcs import parse_redis_connection
+from nautobot.core.settings_funcs import parse_redis_connection, is_truthy
 
 
 #
@@ -144,6 +144,6 @@ PLUGINS_CONFIG = {
         "base_url": os.getenv("NAUTOBOT_SSOT_CITRIX_BASE_URL", ""),
         "username": os.getenv("NAUTOBOT_SSOT_CITRIX_USERNAME", ""),
         "password": os.getenv("NAUTOBOT_SSOT_CITRIX_PASSWORD", ""),
-        "verify": os.getenv("NAUTOBOT_SSOT_CITRIX_VERIFY", True),
+        "verify": is_truthy(os.getenv("NAUTOBOT_SSOT_CITRIX_VERIFY", True)),
     },
 }
