@@ -2,11 +2,14 @@
 
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
-from nautobot.dcim.models import Device, Interface, Site
+from nautobot.dcim.models import Device as OrmDevice, Interface, Site
+from nautobot.ipam.models import IPAddress
 from nautobot_ssot_citrix_adm.diffsync.models.nautobot import (
     NautobotDatacenter,
     NautobotDevice,
     NautobotPort,
+    NautobotAddress,
+)
 
 
 class NautobotAdapter(DiffSync):
@@ -15,6 +18,9 @@ class NautobotAdapter(DiffSync):
     datacenter = NautobotDatacenter
     device = NautobotDevice
     port = NautobotPort
+    address = NautobotAddress
+
+    top_level = ["datacenter", "device", "port", "address"]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize Nautobot.
@@ -42,7 +48,7 @@ class NautobotAdapter(DiffSync):
 
     def load_devices(self):
         """Load Devices from Nautobot into DiffSync models."""
-        for dev in Device.objects.all():
+        for dev in OrmDevice.objects.all():
             self.job.log_info(message=f"Loading Device {dev.name} from Nautobot.")
             new_dev = self.device(
                 name=dev.name,
@@ -73,6 +79,17 @@ class NautobotAdapter(DiffSync):
                 self.job.log_warning(
                     message=f"Unable to find {intf.device.name} loaded so skipping loading port {intf.name}."
                 )
+
+    def load_addresses(self):
+        """Load IP Addresses from Nautobot into DiffSync models."""
+        for addr in IPAddress.objects.all():
+            new_ip = self.address(
+                address=str(addr.address),
+                device=addr.connected_object.device.name if addr.connected_object else "",
+                port=addr.connected_object.name if addr.connected_object else "",
+                uuid=addr.id,
+            )
+            self.add(new_ip)
 
     def load(self):
         """Load data from Nautobot into DiffSync models."""

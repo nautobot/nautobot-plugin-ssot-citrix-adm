@@ -4,6 +4,7 @@ import uuid
 from unittest.mock import MagicMock
 
 from django.contrib.contenttypes.models import ContentType
+from netutils.ip import netmask_to_cidr
 from nautobot.extras.models import Job, JobResult
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_citrix_adm.diffsync.adapters.citrix_adm import CitrixAdmAdapter
@@ -51,3 +52,25 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
         expected_ports = non_mgmt_ports + mgmt_ports
         actual_ports = [port.get_unique_id() for port in self.citrix_adm.get_all("port")]
         self.assertEqual(sorted(expected_ports), sorted(actual_ports))
+
+    def test_management_addresses_loaded(self):
+        """Test the Nautobot SSoT Citrix ADM loads management addresses."""
+        expected_addrs = [
+            f"{addr['mgmt_ip_address']}/{netmask_to_cidr(addr['netmask'])}__{addr['hostname']}__Management"
+            for addr in DEVICE_FIXTURE["managed_device"]
+        ]
+        actual_addrs = [addr.get_unique_id() for addr in self.citrix_adm.get_all("address")]
+        for addr in expected_addrs:
+            self.assertTrue(addr in actual_addrs)
+
+    def test_port_addresses_loaded(self):
+        """Test the Nautobot SSoT Citrix ADM loads port addresses."""
+        expected_addrs = [
+            f"{port['ns_ip_address']}/{netmask_to_cidr(self.citrix_adm.adm_device_map[port['hostname']]['netmask'])}__{port['hostname']}__{port['devicename']}"
+            for port in PORT_FIXTURE["ns_network_interface"]
+        ]
+        actual_addrs = [addr.get_unique_id() for addr in self.citrix_adm.get_all("address")]
+        print(expected_addrs)
+        print(actual_addrs)
+        for addr in expected_addrs:
+            self.assertTrue(addr in actual_addrs)
