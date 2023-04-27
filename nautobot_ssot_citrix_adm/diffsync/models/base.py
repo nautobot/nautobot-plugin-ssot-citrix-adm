@@ -66,11 +66,12 @@ class Address(DiffSyncModel):
     """DiffSync model for Citrix ADM management addresses."""
 
     _modelname = "address"
-    _identifiers = ("address",)
-    _attributes = ("device",)
+    _identifiers = ("address", "device", "port")
+    _attributes = ()
     _children = {}
 
     address: str
     device: str
+    port: str
 
     uuid: Optional[UUID]
