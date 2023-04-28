@@ -9,6 +9,8 @@ from nautobot_ssot_citrix_adm.tests.fixtures import (
     SITE_FIXTURE_RECV,
     DEVICE_FIXTURE_SENT,
     DEVICE_FIXTURE_RECV,
+    PORT_FIXTURE_SENT,
+    PORT_FIXTURE_RECV,
 )
 from nautobot_ssot_citrix_adm.utils.citrix_adm import parse_version, CitrixNitroClient
 
@@ -135,6 +137,21 @@ class TestCitrixAdmClient(TestCase):
         mock_request.return_value = {}
         expected = self.client.get_devices()
         self.log.log_failure.assert_called_once_with(message="Error getting devices from Citrix ADM.")
+        self.assertEqual(expected, {})
+
+    @patch.object(CitrixNitroClient, "request")
+    def test_get_ports_success(self, mock_request):
+        """Validate functionality of the get_ports() method success."""
+        mock_request.return_value = PORT_FIXTURE_SENT
+        expected = self.client.get_ports()
+        self.assertEqual(PORT_FIXTURE_RECV, expected)
+
+    @patch.object(CitrixNitroClient, "request")
+    def test_get_ports_failure(self, mock_request):
+        """Validate functionality of the get_ports() method failure."""
+        mock_request.return_value = {}
+        expected = self.client.get_ports()
+        self.log.log_failure.assert_called_once_with(message="Error getting ports from Citrix ADM.")
         self.assertEqual(expected, {})
 
     def test_parse_version(self):

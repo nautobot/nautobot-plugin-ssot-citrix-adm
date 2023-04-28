@@ -9,7 +9,7 @@ from nautobot.extras.models import Job, JobResult
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_citrix_adm.diffsync.adapters.citrix_adm import CitrixAdmAdapter
 from nautobot_ssot_citrix_adm.jobs import CitrixAdmDataSource
-from nautobot_ssot_citrix_adm.tests.fixtures import SITE_FIXTURE_RECV, DEVICE_FIXTURE_RECV, PORT_FIXTURE
+from nautobot_ssot_citrix_adm.tests.fixtures import SITE_FIXTURE_RECV, DEVICE_FIXTURE_RECV, PORT_FIXTURE_RECV
 
 
 class TestCitrixAdmAdapterTestCase(TransactionTestCase):
@@ -22,7 +22,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
         self.citrix_adm_client = MagicMock()
         self.citrix_adm_client.get_sites.return_value = SITE_FIXTURE_RECV
         self.citrix_adm_client.get_devices.return_value = DEVICE_FIXTURE_RECV
-        self.citrix_adm_client.get_ports.return_value = PORT_FIXTURE["ns_network_interface"]
+        self.citrix_adm_client.get_ports.return_value = PORT_FIXTURE_RECV
 
         self.job = CitrixAdmDataSource()
         self.job.job_result = JobResult.objects.create(
@@ -47,8 +47,8 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
 
     def test_load_ports(self):
         """Test the Nautobot SSoT Citrix ADM load_ports() function."""
-        mgmt_ports = list({f"Management__{port['hostname']}" for port in PORT_FIXTURE["ns_network_interface"]})
-        non_mgmt_ports = [f"{port['devicename']}__{port['hostname']}" for port in PORT_FIXTURE["ns_network_interface"]]
+        mgmt_ports = list({f"Management__{port['hostname']}" for port in PORT_FIXTURE_RECV})
+        non_mgmt_ports = [f"{port['devicename']}__{port['hostname']}" for port in PORT_FIXTURE_RECV]
         expected_ports = non_mgmt_ports + mgmt_ports
         actual_ports = [port.get_unique_id() for port in self.citrix_adm.get_all("port")]
         self.assertEqual(sorted(expected_ports), sorted(actual_ports))
@@ -67,7 +67,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
         """Test the Nautobot SSoT Citrix ADM loads port addresses."""
         expected_addrs = [
             f"{port['ns_ip_address']}/{netmask_to_cidr(self.citrix_adm.adm_device_map[port['hostname']]['netmask'])}__{port['hostname']}__{port['devicename']}"
-            for port in PORT_FIXTURE["ns_network_interface"]
+            for port in PORT_FIXTURE_RECV
         ]
         actual_addrs = [addr.get_unique_id() for addr in self.citrix_adm.get_all("address")]
         print(expected_addrs)
