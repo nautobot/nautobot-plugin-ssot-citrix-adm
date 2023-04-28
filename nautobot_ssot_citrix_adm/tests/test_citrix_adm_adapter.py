@@ -81,6 +81,13 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
         actual_ports = [port.get_unique_id() for port in self.citrix_adm.get_all("port")]
         self.assertEqual(sorted(expected_ports), sorted(actual_ports))
 
+    def test_load_ports_duplicate(self):
+        """Test the Nautobot SSoT Citrix ADM load_ports() function with duplicate ports."""
+        self.citrix_adm.load_ports()
+        self.job.log_warning.assert_called_with(
+            message="Duplicate port 10/1 attempting to be loaded for OGI-MSCI-IMS-Mctdgj-Pqsf-M."
+        )
+
     def test_management_addresses_loaded(self):
         """Test the Nautobot SSoT Citrix ADM loads management addresses."""
         expected_addrs = [
