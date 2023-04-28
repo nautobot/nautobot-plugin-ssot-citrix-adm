@@ -49,7 +49,9 @@ class CitrixNitroClient:
         """Best practice to logout when session is complete."""
         url = "config"
         objecttype = "logout"
-        self.request(method="POST", endpoint=url, objecttype=objecttype)
+        logout = {"logout": {"username": self.username, "password": self.password}}
+        payload = f"object={logout}"
+        self.request(method="POST", endpoint=url, objecttype=objecttype, data=payload)
 
     def request(  # pylint: disable=too-many-arguments
         self,
