@@ -15,6 +15,7 @@ class TestCitrixAdmClient(TestCase):
     databases = ("default", "job_logs")
 
     def setUp(self):
+        """Configure common variables for tests."""
         self.base_url = "https://example.com"
         self.user = "user"
         self.password = "password"  # nosec: B105
@@ -31,6 +32,7 @@ class TestCitrixAdmClient(TestCase):
 
     @patch.object(CitrixNitroClient, "request")
     def test_login(self, mock_request):
+        """Validate functionality of the login() method success."""
         mock_response = MagicMock()
         mock_response = {"login": [{"sessionid": "1234"}]}
         mock_request.return_value = mock_response
@@ -50,11 +52,13 @@ class TestCitrixAdmClient(TestCase):
 
     @patch.object(CitrixNitroClient, "request")
     def test_logout(self, mock_request):
+        """Validate functionality of the logout() method success."""
         self.client.logout()
         mock_request.assert_called_with(method="POST", endpoint="config", objecttype="logout")
 
     @patch("nautobot_ssot_citrix_adm.utils.citrix_adm.requests.request")
     def test_request(self, mock_request):
+        """Validate functionality of the request() method success."""
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()
         mock_response.json.return_value = "Test successful!"
@@ -80,6 +84,7 @@ class TestCitrixAdmClient(TestCase):
 
     @patch("nautobot_ssot_citrix_adm.utils.citrix_adm.requests.request")
     def test_request_failure(self, mock_request):
+        """Validate functionality of the request() method failure."""
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()
         mock_response.raise_for_status.side_effect = HTTPError
