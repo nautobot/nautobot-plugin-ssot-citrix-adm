@@ -1,7 +1,7 @@
 """Nautobot DiffSync models for Citrix ADM SSoT."""
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import Device as NewDevice
-from nautobot.dcim.models import Region, Site, DeviceRole, DeviceType, Manufacturer, Interface
+from nautobot.dcim.models import Region, Site, DeviceRole, DeviceType, Manufacturer, Interface, Platform
 from nautobot.extras.models import Status
 from nautobot.ipam.models import IPAddress
 from nautobot_ssot_citrix_adm.diffsync.models.base import Datacenter, Device, Port, Address
@@ -57,6 +57,7 @@ class NautobotDevice(Device):
                 model=attrs["model"], manufacturer=Manufacturer.objects.get(name="Citrix")
             ),
             serial=attrs["serial"],
+            platform=Platform.objects.get(slug="netscaler"),
         )
         if attrs.get("version"):
             new_device.custom_field_data.update({"os_version": attrs["version"]})
