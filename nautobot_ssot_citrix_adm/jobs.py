@@ -48,6 +48,7 @@ class CitrixAdmDataSource(DataSource, Job):
             user=PLUGIN_CFG["username"],
             password=PLUGIN_CFG["password"],
             verify=PLUGIN_CFG["verify"],
+            logger=self,
         )
         self.source_adapter = citrix_adm.CitrixAdmAdapter(job=self, sync=self.sync, client=client)
         self.source_adapter.load()
@@ -98,6 +99,7 @@ class CitrixAdmDataTarget(DataTarget, Job):
             user=PLUGIN_CFG["username"],
             password=PLUGIN_CFG["password"],
             verify=PLUGIN_CFG["verify"],
+            logger=self,
         )
         self.target_adapter = citrix_adm.CitrixAdmAdapter(job=self, sync=self.sync, client=client)
         self.target_adapter.load()

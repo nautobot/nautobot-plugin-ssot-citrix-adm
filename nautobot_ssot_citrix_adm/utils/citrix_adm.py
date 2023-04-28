@@ -8,7 +8,9 @@ import requests
 class CitrixNitroClient:
     """Client for interacting with Citrix ADM NITRO API."""
 
-    def __init__(self, base_url: str, user: str, password: str, verify: bool = True):
+    def __init__(  # pylint: disable=too-many-arguments
+        self, base_url: str, user: str, password: str, logger, verify: bool = True
+    ):
         """Initialize NITRO client.
 
         Args:
@@ -25,6 +27,7 @@ class CitrixNitroClient:
             "Content-Type": "application/json",
         }
         self.verify = verify
+        self.log = logger
 
     def login(self):
         """Login to ADM/MAS and set authorization token to enable further communication."""
@@ -33,8 +36,13 @@ class CitrixNitroClient:
         login = {"login": {"username": self.username, "password": self.password}}
         payload = f"object={login}"
         response = self.request(method="POST", endpoint=url, objecttype=objecttype, data=payload)
-        session_id = response["login"][0]["sessionid"]
-        self.headers["Set-Cookie"] = f"SESSID={session_id}; path=/; SameSite=Lax; secure; HttpOnly"
+        if response:
+            session_id = response["login"][0]["sessionid"]
+            self.headers["Set-Cookie"] = f"SESSID={session_id}; path=/; SameSite=Lax; secure; HttpOnly"
+        else:
+            self.log.log_failure(
+                message="Error while logging into Citrix ADM. Please validate your configuration is correct."
+            )
 
     def logout(self):
         """Best practice to logout when session is complete."""
@@ -85,34 +93,50 @@ class CitrixNitroClient:
             headers=self.headers,
             verify=self.verify,
         )
-        _result.raise_for_status()
-        return _result.json()
+        try:
+            _result.raise_for_status()
+            return _result.json()
+        except requests.exceptions.HTTPError as err:
+            self.log.log_failure(message=f"Failure with request: {err}")
+            return {}
 
     def get_sites(self):
         """Gather all sites configured on MAS/ADM instance."""
+        self.log.log_info(message="Getting sites from Citrix ADM.")
         endpoint = "config"
         objecttype = "mps_datacenter"
         params = {"attrs": "city,zipcode,type,name,region,country,latitude,longitude,id"}
         result = self.request("GET", endpoint, objecttype, params=params)
-        return result[objecttype]
+        if result:
+            return result[objecttype]
+        self.log.log_failure(message="Error getting sites from Citrix ADM.")
+        return {}
 
     def get_devices(self):
         """Gather all devices registered to MAS/ADM instance."""
+        self.log.log_info(message="Getting devices from Citrix ADM.")
         endpoint = "config"
         objecttype = "managed_device"
         params = {
             "attrs": "ip_address,hostname,gateway,mgmt_ip_address,description,serialnumber,type,display_name,netmask,datacenter_id,version,instance_state"
         }
         result = self.request("GET", endpoint, objecttype, params=params)
-        return result[objecttype]
+        if result:
+            return result[objecttype]
+        self.log.log_failure(message="Error getting devices from Citrix ADM.")
+        return {}
 
     def get_ports(self):
         """Gather all ports registered to devices in MAS/ADM instance."""
+        self.log.log_info(message="Getting ports from Citrix ADM.")
         endpoint = "config"
         objecttype = "ns_network_interface"
         params = {"attrs": "devicename,ns_ip_address,state,hostname,description"}
         result = self.request("GET", endpoint, objecttype, params=params)
-        return result[objecttype]
+        if result:
+            return result[objecttype]
+        self.log.log_failure(message="Error getting ports from Citrix ADM.")
+        return {}
 
 
 def parse_version(version: str):
