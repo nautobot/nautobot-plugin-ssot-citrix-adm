@@ -97,6 +97,8 @@ class NautobotPort(Port):
             device=NewDevice.objects.get(name=ids["device"]),
             status=Status.objects.get(name=attrs["status"]),
             description=attrs["description"],
+            type="virtual",
+            mgmt_only=bool(ids["name"] == "Management"),
         )
         new_port.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
