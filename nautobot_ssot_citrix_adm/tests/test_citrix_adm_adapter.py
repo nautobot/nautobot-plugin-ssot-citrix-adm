@@ -2,7 +2,7 @@
 
 import uuid
 from unittest.mock import MagicMock
-
+from diffsync.exceptions import ObjectNotFound
 from django.contrib.contenttypes.models import ContentType
 from netutils.ip import netmask_to_cidr
 from nautobot.extras.models import Job, JobResult
@@ -87,6 +87,14 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
         self.job.log_warning.assert_called_with(
             message="Duplicate port 10/1 attempting to be loaded for OGI-MSCI-IMS-Mctdgj-Pqsf-M."
         )
+
+    def test_load_ports_missing_device(self):
+        """Test the Nautobot SSoT Citrix ADM load_ports() function with a missing device."""
+        self.citrix_adm_client.get_ports.return_value = [{"devicename": "10/1", "hostname": "Test"}]
+        self.citrix_adm.get = MagicMock()
+        self.citrix_adm.get.side_effect = [ObjectNotFound, ObjectNotFound]
+        self.citrix_adm.load_ports()
+        self.job.log_warning.assert_called_with(message="Unable to find device Test so skipping loading of port 10/1.")
 
     def test_management_addresses_loaded(self):
         """Test the Nautobot SSoT Citrix ADM loads management addresses."""
