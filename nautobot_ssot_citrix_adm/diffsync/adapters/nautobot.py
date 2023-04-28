@@ -20,7 +20,7 @@ class NautobotAdapter(DiffSync):
     port = NautobotPort
     address = NautobotAddress
 
-    top_level = ["datacenter", "device", "port", "address"]
+    top_level = ["datacenter", "device", "address"]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize Nautobot.

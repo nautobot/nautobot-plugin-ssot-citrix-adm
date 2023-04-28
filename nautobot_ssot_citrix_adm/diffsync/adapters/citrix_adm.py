@@ -20,7 +20,7 @@ class CitrixAdmAdapter(DiffSync):
     address = CitrixAdmAddress
     port = CitrixAdmPort
 
-    top_level = ["datacenter", "device", "port", "address"]
+    top_level = ["datacenter", "device", "address"]
 
     def __init__(self, *args, job=None, sync=None, client: CitrixNitroClient, **kwargs):
         """Initialize Citrix ADM.
