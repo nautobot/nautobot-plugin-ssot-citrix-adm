@@ -58,6 +58,13 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
             {dev.get_unique_id() for dev in self.citrix_adm.get_all("device")},
         )
 
+    def test_load_devices_duplicate(self):
+        """Test the Nautobot SSoT Citrix ADM load_devices() function with duplicate devices."""
+        self.citrix_adm.load_devices()
+        self.job.log_warning.assert_called_with(
+            message="Duplicate Device attempting to be loaded: {'gateway': '1.81.7.1', 'mgmt_ip_address': '65.61.6.121', 'description': '', 'serialnumber': '98ATECSRNJ', 'display_name': '10.62.7.111-10.62.7.112', 'type': 'nsvpx', 'netmask': '255.255.255.0', 'datacenter_id': '28aa2970-0160-4860-aca8-a85f89268803', 'hostname': 'OGI-MSCI-IMS-Mctdgj-Pqsf-M', 'ip_address': '10.62.7.111', 'version': 'NetScaler NS12.1: Build 63.22.nc, Date: Oct 13 2021, 01:18:50   (64-bit)', 'instance_state': 'Up'}."
+        )
+
     def test_load_devices_without_hostname(self):
         """Test the Nautobot SSoT Citrix ADM load_devices() function with a device missing hostname."""
         self.citrix_adm_client.get_devices.return_value = [{"hostname": ""}]
