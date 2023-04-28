@@ -29,6 +29,8 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
             name=self.job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
         )
         self.citrix_adm = CitrixAdmAdapter(job=self.job, sync=None, client=self.citrix_adm_client)
+        self.citrix_adm.job = MagicMock()
+        self.citrix_adm.job.log_warning = MagicMock()
         self.citrix_adm.load()
 
     def test_load_sites(self):
@@ -43,6 +45,14 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
         self.assertEqual(
             {dev["hostname"] for dev in DEVICE_FIXTURE_RECV},
             {dev.get_unique_id() for dev in self.citrix_adm.get_all("device")},
+        )
+
+    def test_load_devices_without_hostname(self):
+        """Test the Nautobot SSoT Citrix ADM load_devices() function with a device missing hostname."""
+        self.citrix_adm_client.get_devices.return_value = [{"hostname": ""}]
+        self.citrix_adm.load_devices()
+        self.citrix_adm.job.log_warning.assert_called_once_with(
+            message="Device without hostname will not be loaded. {'hostname': ''}"
         )
 
     def test_load_ports(self):

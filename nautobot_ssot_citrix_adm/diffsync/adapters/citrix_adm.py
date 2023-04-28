@@ -62,6 +62,9 @@ class CitrixAdmAdapter(DiffSync):
         """Load devices from Citrix ADM into DiffSync models."""
         devices = self.conn.get_devices()
         for dev in devices:
+            if not dev.get("hostname"):
+                self.job.log_warning(message=f"Device without hostname will not be loaded. {dev}")
+                continue
             try:
                 found_dev = self.get(self.device, dev["hostname"])
                 if found_dev:
