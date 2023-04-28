@@ -92,7 +92,7 @@ class CitrixNitroClient:
         """Gather all sites configured on MAS/ADM instance."""
         endpoint = "config"
         objecttype = "mps_datacenter"
-        params = {"attrs": ["city,zipcode,type,name,region,country,latitude,longitude,id"]}
+        params = {"attrs": "city,zipcode,type,name,region,country,latitude,longitude,id"}
         result = self.request("GET", endpoint, objecttype, params=params)
         return result[objecttype]
 
@@ -101,9 +101,7 @@ class CitrixNitroClient:
         endpoint = "config"
         objecttype = "managed_device"
         params = {
-            "attrs": [
-                "ip_address,hostname,gateway,mgmt_ip_address,description,serialnumber,type,display_name,netmask,datacenter_id,version,instance_state"
-            ]
+            "attrs": "ip_address,hostname,gateway,mgmt_ip_address,description,serialnumber,type,display_name,netmask,datacenter_id,version,instance_state"
         }
         result = self.request("GET", endpoint, objecttype, params=params)
         return result[objecttype]
@@ -112,7 +110,7 @@ class CitrixNitroClient:
         """Gather all ports registered to devices in MAS/ADM instance."""
         endpoint = "config"
         objecttype = "ns_network_interface"
-        params = {"attrs": ["devicename,ns_ip_address,state,hostname,description"]}
+        params = {"attrs": "devicename,ns_ip_address,state,hostname,description"}
         result = self.request("GET", endpoint, objecttype, params=params)
         return result[objecttype]
 
