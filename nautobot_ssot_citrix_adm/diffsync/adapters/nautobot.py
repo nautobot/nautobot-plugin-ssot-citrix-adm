@@ -83,10 +83,15 @@ class NautobotAdapter(DiffSync):
     def load_addresses(self):
         """Load IP Addresses from Nautobot into DiffSync models."""
         for addr in IPAddress.objects.all():
+            if addr.family == 4:
+                primary = hasattr(addr, "primary_ip4_for")
+            else:
+                primary = hasattr(addr, "primary_ip6_for")
             new_ip = self.address(
                 address=str(addr.address),
                 device=addr.connected_object.device.name if addr.connected_object else "",
                 port=addr.connected_object.name if addr.connected_object else "",
+                primary=primary,
                 uuid=addr.id,
             )
             self.add(new_ip)

@@ -67,11 +67,12 @@ class Address(DiffSyncModel):
 
     _modelname = "address"
     _identifiers = ("address", "device", "port")
-    _attributes = ()
+    _attributes = ("primary",)
     _children = {}
 
     address: str
     device: str
     port: str
+    primary: bool
 
     uuid: Optional[UUID]

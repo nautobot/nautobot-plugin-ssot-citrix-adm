@@ -90,7 +90,7 @@ class CitrixAdmAdapter(DiffSync):
                                 {"address": address, "device": dev["hostname"], "port": "Management"},
                             )
                         except ObjectNotFound:
-                            self.load_address(address=address, device=dev["hostname"], port="Management")
+                            self.load_address(address=address, device=dev["hostname"], port="Management", primary=True)
 
     def load_ports(self):
         """Load ports from Citrix ADM into DiffSync models."""
@@ -165,18 +165,20 @@ class CitrixAdmAdapter(DiffSync):
         self.add(new_port)
         return new_port
 
-    def load_address(self, address: str, device: str, port: str):
+    def load_address(self, address: str, device: str, port: str, primary: bool = False):
         """Load CitrixAdmAddress DiffSync model with specified data.
 
         Args:
             address (str): IP Address to be loaded.
             device (str): Device that IP resides on.
             port (str): Interface that IP is configured on.
+            primary (str): Whether the IP is primary IP for assigned device. Defaults to False.
         """
         new_addr = self.address(
             address=address,
             device=device,
             port=port,
+            primary=primary,
             uuid=None,
         )
         self.add(new_addr)
