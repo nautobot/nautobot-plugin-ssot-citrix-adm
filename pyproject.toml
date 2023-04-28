@@ -54,6 +54,9 @@ mkdocstrings-python = "0.7.1"
 [tool.poetry.extras]
 nautobot = ["nautobot"]
 
+[tool.poetry.group.dev.dependencies]
+python-semantic-release = "^7.33.3"
+
 [tool.black]
 line-length = 120
 target-version = ['py37']
@@ -121,3 +124,16 @@ testpaths = [
     "tests"
 ]
 addopts = "-vv --doctest-modules"
+
+[tool.semantic_release]
+version_toml = [
+    "pyproject.toml:tool.poetry.version"
+]
+major_on_zero = true
+branch = "main"
+upload_to_repository = false
+upload_to_release = false
+changelog_file = "CHANGELOG.md"
+build_command = false
+version_source = "tag"
+commit_version_number = true
