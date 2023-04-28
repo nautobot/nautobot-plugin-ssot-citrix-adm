@@ -4,7 +4,12 @@ import logging
 from unittest.mock import MagicMock, patch
 from requests.exceptions import HTTPError
 from nautobot.utilities.testing import TestCase
-from nautobot_ssot_citrix_adm.tests.fixtures import SITE_FIXTURE_SENT, SITE_FIXTURE_RECV
+from nautobot_ssot_citrix_adm.tests.fixtures import (
+    SITE_FIXTURE_SENT,
+    SITE_FIXTURE_RECV,
+    DEVICE_FIXTURE_SENT,
+    DEVICE_FIXTURE_RECV,
+)
 from nautobot_ssot_citrix_adm.utils.citrix_adm import parse_version, CitrixNitroClient
 
 LOGGER = logging.getLogger(__name__)
@@ -115,6 +120,21 @@ class TestCitrixAdmClient(TestCase):
         mock_request.return_value = {}
         expected = self.client.get_sites()
         self.log.log_failure.assert_called_once_with(message="Error getting sites from Citrix ADM.")
+        self.assertEqual(expected, {})
+
+    @patch.object(CitrixNitroClient, "request")
+    def test_get_devices_success(self, mock_request):
+        """Validate functionality of the get_devices() method success."""
+        mock_request.return_value = DEVICE_FIXTURE_SENT
+        expected = self.client.get_devices()
+        self.assertEqual(DEVICE_FIXTURE_RECV, expected)
+
+    @patch.object(CitrixNitroClient, "request")
+    def test_get_devices_failure(self, mock_request):
+        """Validate functionality of the get_devices() method failure."""
+        mock_request.return_value = {}
+        expected = self.client.get_devices()
+        self.log.log_failure.assert_called_once_with(message="Error getting devices from Citrix ADM.")
         self.assertEqual(expected, {})
 
     def test_parse_version(self):

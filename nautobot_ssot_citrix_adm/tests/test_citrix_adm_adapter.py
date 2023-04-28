@@ -9,7 +9,7 @@ from nautobot.extras.models import Job, JobResult
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_citrix_adm.diffsync.adapters.citrix_adm import CitrixAdmAdapter
 from nautobot_ssot_citrix_adm.jobs import CitrixAdmDataSource
-from nautobot_ssot_citrix_adm.tests.fixtures import SITE_FIXTURE_RECV, DEVICE_FIXTURE, PORT_FIXTURE
+from nautobot_ssot_citrix_adm.tests.fixtures import SITE_FIXTURE_RECV, DEVICE_FIXTURE_RECV, PORT_FIXTURE
 
 
 class TestCitrixAdmAdapterTestCase(TransactionTestCase):
@@ -21,7 +21,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
         """Initialize test case."""
         self.citrix_adm_client = MagicMock()
         self.citrix_adm_client.get_sites.return_value = SITE_FIXTURE_RECV
-        self.citrix_adm_client.get_devices.return_value = DEVICE_FIXTURE["managed_device"]
+        self.citrix_adm_client.get_devices.return_value = DEVICE_FIXTURE_RECV
         self.citrix_adm_client.get_ports.return_value = PORT_FIXTURE["ns_network_interface"]
 
         self.job = CitrixAdmDataSource()
@@ -41,7 +41,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
     def test_load_devices(self):
         """Test the Nautobot SSoT Citrix ADM load_devices() function."""
         self.assertEqual(
-            {dev["hostname"] for dev in DEVICE_FIXTURE["managed_device"]},
+            {dev["hostname"] for dev in DEVICE_FIXTURE_RECV},
             {dev.get_unique_id() for dev in self.citrix_adm.get_all("device")},
         )
 
@@ -57,7 +57,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
         """Test the Nautobot SSoT Citrix ADM loads management addresses."""
         expected_addrs = [
             f"{addr['mgmt_ip_address']}/{netmask_to_cidr(addr['netmask'])}__{addr['hostname']}__Management"
-            for addr in DEVICE_FIXTURE["managed_device"]
+            for addr in DEVICE_FIXTURE_RECV
         ]
         actual_addrs = [addr.get_unique_id() for addr in self.citrix_adm.get_all("address")]
         for addr in expected_addrs:
