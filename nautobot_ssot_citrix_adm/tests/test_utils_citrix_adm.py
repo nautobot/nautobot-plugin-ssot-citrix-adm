@@ -46,7 +46,7 @@ class TestCitrixAdmClient(TestCase):
         mock_response = {"login": [{"sessionid": "1234"}]}
         mock_request.return_value = mock_response
         self.client.login()
-        self.assertEqual(self.client.headers["Set-Cookie"], "SESSID=1234; path=/; SameSite=Lax; secure; HttpOnly")
+        self.assertEqual(self.client.headers["Cookie"], "SESSID=1234; path=/; SameSite=Lax; secure; HttpOnly")
 
     @patch.object(CitrixNitroClient, "request")
     def test_login_failure(self, mock_request):
