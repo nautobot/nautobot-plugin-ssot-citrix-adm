@@ -8,6 +8,7 @@ def load_json(path):
         return json.loads(file.read())
 
 
-SITE_FIXTURE = load_json("./nautobot_ssot_citrix_adm/tests/fixtures/get_sites.json")
+SITE_FIXTURE_SENT = load_json("./nautobot_ssot_citrix_adm/tests/fixtures/get_sites_sent.json")
+SITE_FIXTURE_RECV = load_json("./nautobot_ssot_citrix_adm/tests/fixtures/get_sites_recv.json")
 DEVICE_FIXTURE = load_json("./nautobot_ssot_citrix_adm/tests/fixtures/get_devices.json")
 PORT_FIXTURE = load_json("./nautobot_ssot_citrix_adm/tests/fixtures/get_ports.json")
