@@ -86,7 +86,8 @@ class CitrixAdmAdapter(DiffSync):
                     try:
                         _ = self.get(self.port, {"name": "Management", "device": dev["hostname"], "port": "Management"})
                     except ObjectNotFound:
-                        self.add_port(dev_name=dev["hostname"])
+                        mgmt_port = self.add_port(dev_name=dev["hostname"])
+                        new_dev.add_child(mgmt_port)
                         try:
                             _ = self.get(
                                 self.address,
