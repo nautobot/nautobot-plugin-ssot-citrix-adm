@@ -63,7 +63,12 @@ class TestCitrixAdmClient(TestCase):
     def test_logout(self, mock_request):
         """Validate functionality of the logout() method success."""
         self.client.logout()
-        mock_request.assert_called_with(method="POST", endpoint="config", objecttype="logout")
+        mock_request.assert_called_with(
+            method="POST",
+            endpoint="config",
+            objecttype="logout",
+            data="object={'logout': {'username': 'user', 'password': 'password'}}",
+        )
 
     @patch("nautobot_ssot_citrix_adm.utils.citrix_adm.requests.request")
     def test_request(self, mock_request):
