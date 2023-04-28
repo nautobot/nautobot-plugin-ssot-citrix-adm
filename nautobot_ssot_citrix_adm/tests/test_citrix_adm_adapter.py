@@ -25,12 +25,13 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
         self.citrix_adm_client.get_ports.return_value = PORT_FIXTURE_RECV
 
         self.job = CitrixAdmDataSource()
+        self.job.kwargs["debug"] = True
+        self.job.log_warning = MagicMock()
+        self.job.log_info = MagicMock()
         self.job.job_result = JobResult.objects.create(
             name=self.job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
         )
         self.citrix_adm = CitrixAdmAdapter(job=self.job, sync=None, client=self.citrix_adm_client)
-        self.citrix_adm.job = MagicMock()
-        self.citrix_adm.job.log_warning = MagicMock()
         self.citrix_adm.load()
 
     def test_load_sites(self):
@@ -38,6 +39,16 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
         self.assertEqual(
             {f"{site['name']}__{site['region']}" for site in SITE_FIXTURE_RECV},
             {site.get_unique_id() for site in self.citrix_adm.get_all("datacenter")},
+        )
+        self.job.log_info.assert_called_with(
+            message="Attempting to load DC: NTC Corporate HQ {'city': 'New York City', 'zipcode': '10018', 'type': '1', 'name': 'NTC Corporate HQ', 'region': 'North', 'country': 'USA', 'longitude': '-73.989429', 'id': '7d29e100-ae0c-4580-ba86-b72df0b6cfd8', 'latitude': '40.753146'}"
+        )
+
+    def test_load_sites_duplicate(self):
+        """Test Nautobot SSoT Citrix ADM load_sites() function with duplicate sites."""
+        self.citrix_adm.load_sites()
+        self.job.log_warning.assert_called_with(
+            message="Duplicate Site attempting to be loaded: {'city': 'New York City', 'zipcode': '10018', 'type': '1', 'name': 'NTC Corporate HQ', 'region': 'North', 'country': 'USA', 'longitude': '-73.989429', 'id': '7d29e100-ae0c-4580-ba86-b72df0b6cfd8', 'latitude': '40.753146'}."
         )
 
     def test_load_devices(self):
@@ -51,7 +62,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
         """Test the Nautobot SSoT Citrix ADM load_devices() function with a device missing hostname."""
         self.citrix_adm_client.get_devices.return_value = [{"hostname": ""}]
         self.citrix_adm.load_devices()
-        self.citrix_adm.job.log_warning.assert_called_once_with(
+        self.job.log_warning.assert_called_once_with(
             message="Device without hostname will not be loaded. {'hostname': ''}"
         )
 
