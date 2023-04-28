@@ -15,9 +15,10 @@ class CitrixNitroClient:
 
         Args:
             base_url (str): Base URL for MAS/ADM API. Must include schema, http(s).
-            user (str): _description_
-            password (str): _description_
-            verify (bool, optional): _description_. Defaults to True.
+            user (str): Username to authenticate with Citrix ADM.
+            password (str): Password to authenticate with Citrix ADM.
+            verify (bool, optional): Whether to validate SSL certificate on Citrix ADM or not. Defaults to True.
+            logger (Job): Job logger to notify users of progress.
         """
         self.url = base_url
         self.username = user
