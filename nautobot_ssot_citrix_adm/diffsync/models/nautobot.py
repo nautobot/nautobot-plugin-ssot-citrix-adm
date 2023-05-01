@@ -55,7 +55,7 @@ class NautobotDevice(Device):
         new_device = NewDevice(
             name=ids["name"],
             status=Status.objects.get(name=attrs["status"]),
-            role=lb_role,
+            device_role=lb_role,
             site=Site.objects.get(name=attrs["site"]),
             device_type=lb_dt,
             serial=attrs["serial"],
@@ -69,10 +69,16 @@ class NautobotDevice(Device):
     def update(self, attrs):
         """Update Device in Nautobot from NautobotDevice object."""
         device = NewDevice.objects.get(id=self.uuid)
+        if "model" in attrs:
+            device.device_type, _ = DeviceType.objects.get_or_create(
+                model=attrs["model"], manufacturer=Manufacturer.objects.get(name="Citrix")
+            )
         if "status" in attrs:
             device.status = Status.objects.get(name=attrs["status"])
         if "role" in attrs:
-            device.role, _ = DeviceRole.objects.get_or_create(name="Load-Balancer")
+            device.device_role, _ = DeviceRole.objects.get_or_create(name="Load-Balancer")
+        if "serial" in attrs:
+            device.serial = attrs["serial"]
         if "site" in attrs:
             device.site = Site.objects.get(name=attrs["site"])
         if attrs.get("version"):
