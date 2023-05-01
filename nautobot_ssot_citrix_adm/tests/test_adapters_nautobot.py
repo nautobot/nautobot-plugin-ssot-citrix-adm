@@ -3,10 +3,16 @@ import uuid
 from unittest.mock import MagicMock
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import (
+    Device,
+    DeviceType,
+    DeviceRole,
+    Interface,
+    Manufacturer,
     Region,
     Site,
 )
-from nautobot.extras.models import Status, Job, JobResult
+from nautobot.extras.choices import CustomFieldTypeChoices
+from nautobot.extras.models import CustomField, Status, Job, JobResult
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_citrix_adm.diffsync.adapters.nautobot import NautobotAdapter
 from nautobot_ssot_citrix_adm.jobs import CitrixAdmDataSource
@@ -35,6 +41,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.nb_adapter = NautobotAdapter(job=self.job, sync=None)
         self.job.log_info = MagicMock()
         self.job.log_warning = MagicMock()
+        self.build_nautobot_objects()
 
     def build_nautobot_objects(self):
         """Build out Nautobot objects to test loading."""
@@ -44,11 +51,34 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.hq_site = Site.objects.create(region=self.ny_region, name="HQ", slug="hq", status=self.status_active)
         self.hq_site.validated_save()
 
-    def test_data_loading(self):
-        """Test the load() function."""
-        self.build_nautobot_objects()
-        self.nb_adapter.load()
+        citrix_manu, _ = Manufacturer.objects.get_or_create(name="Citrix")
+        srx_devicetype, _ = DeviceType.objects.get_or_create(model="SDX", manufacturer=citrix_manu)
+        core_role, _ = DeviceRole.objects.get_or_create(name="CORE")
 
+        core_router = Device.objects.create(
+            name="edge-fw.test.com",
+            device_type=srx_devicetype,
+            device_role=core_role,
+            serial="FQ123456",
+            site=self.hq_site,
+            status=self.status_active,
+        )
+        cf_dict = {
+            "name": "os_version",
+            "slug": "os_version",
+            "type": CustomFieldTypeChoices.TYPE_TEXT,
+            "label": "OS Version",
+        }
+        cfield, _ = CustomField.objects.get_or_create(name=cf_dict["name"], defaults=cf_dict)
+        cfield.content_types.add(ContentType.objects.get_for_model(Device))
+        core_router.custom_field_data["os_version"] = "1.2.3"
+        core_router.validated_save()
+        mgmt_intf = Interface.objects.create(name="Management", type="virtual", device=core_router)
+        mgmt_intf.validated_save()
+
+    def test_load_sites(self):
+        """Test the load_sites() function."""
+        self.nb_adapter.load_sites()
         self.assertEqual(
             {
                 "HQ__NY",
@@ -56,3 +86,12 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             {site.get_unique_id() for site in self.nb_adapter.get_all("datacenter")},
         )
         self.job.log_info.assert_called_once_with(message="Loading Site HQ from Nautobot.")
+
+    def test_load_devices(self):
+        """Test the load_devices() function."""
+        self.nb_adapter.load_devices()
+        self.assertEqual(
+            {"edge-fw.test.com"},
+            {dev.get_unique_id() for dev in self.nb_adapter.get_all("device")},
+        )
+        self.job.log_info.assert_called_once_with(message="Loading Device edge-fw.test.com from Nautobot.")
