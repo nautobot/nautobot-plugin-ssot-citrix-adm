@@ -43,6 +43,7 @@ class CitrixAdmAdapter(DiffSync):
         for site in sites:
             if site.get("name") == "Default":
                 self.job.log_info("Skipping loading of Default datacenter.")
+                continue
             try:
                 found_site = self.get(self.datacenter, {"name": site.get("name"), "region": site.get("region")})
                 if found_site:
