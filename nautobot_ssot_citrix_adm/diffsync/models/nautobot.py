@@ -15,12 +15,12 @@ class NautobotDatacenter(Datacenter):
         """Create Site in Nautobot from NautobotDatacenter object."""
         new_site = Site(
             name=ids["name"],
-            status=Status.objects.get_or_create(name=attrs["status"]),
+            status=Status.objects.get(name="Active"),
             latitude=attrs["latitude"],
             longitude=attrs["longitude"],
         )
         if ids.get("region"):
-            new_site.region = Region.objects.get(name=ids["region"])
+            new_site.region = Region.objects.get_or_create(name=ids["region"])
         new_site.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
