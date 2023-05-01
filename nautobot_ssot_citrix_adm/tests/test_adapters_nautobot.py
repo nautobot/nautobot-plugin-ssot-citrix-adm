@@ -12,8 +12,7 @@ from nautobot.dcim.models import (
     Region,
     Site,
 )
-from nautobot.extras.choices import CustomFieldTypeChoices
-from nautobot.extras.models import CustomField, Status, Job, JobResult
+from nautobot.extras.models import Status, Job, JobResult
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_citrix_adm.diffsync.adapters.nautobot import NautobotAdapter
 from nautobot_ssot_citrix_adm.jobs import CitrixAdmDataSource
@@ -64,14 +63,6 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             site=self.hq_site,
             status=self.status_active,
         )
-        cf_dict = {
-            "name": "os_version",
-            "slug": "os_version",
-            "type": CustomFieldTypeChoices.TYPE_TEXT,
-            "label": "OS Version",
-        }
-        cfield, _ = CustomField.objects.get_or_create(name=cf_dict["name"], defaults=cf_dict)
-        cfield.content_types.add(ContentType.objects.get_for_model(Device))
         core_router.custom_field_data["os_version"] = "1.2.3"
         core_router.validated_save()
         mgmt_intf = Interface.objects.create(name="Management", type="virtual", device=core_router)
