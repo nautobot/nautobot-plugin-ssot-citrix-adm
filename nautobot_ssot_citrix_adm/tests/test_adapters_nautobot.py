@@ -2,6 +2,7 @@
 import uuid
 from unittest.mock import MagicMock
 from django.contrib.contenttypes.models import ContentType
+from diffsync.exceptions import ObjectNotFound
 from nautobot.dcim.models import (
     Device,
     DeviceType,
@@ -95,3 +96,21 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             {dev.get_unique_id() for dev in self.nb_adapter.get_all("device")},
         )
         self.job.log_info.assert_called_once_with(message="Loading Device edge-fw.test.com from Nautobot.")
+
+    def test_load_ports_success(self):
+        """Test the load_ports() function success."""
+        self.nb_adapter.load_devices()
+        self.nb_adapter.load_ports()
+        self.assertEqual(
+            {"Management__edge-fw.test.com"},
+            {port.get_unique_id() for port in self.nb_adapter.get_all("port")},
+        )
+
+    def test_load_ports_missing_device(self):
+        """Test the load_ports() function with missing device."""
+        self.nb_adapter.get = MagicMock()
+        self.nb_adapter.get.side_effect = ObjectNotFound
+        self.nb_adapter.load_ports()
+        self.job.log_warning.assert_called_once_with(
+            message="Unable to find edge-fw.test.com loaded so skipping loading port Management."
+        )
