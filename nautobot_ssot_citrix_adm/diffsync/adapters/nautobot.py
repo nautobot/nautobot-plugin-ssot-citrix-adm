@@ -40,8 +40,8 @@ class NautobotAdapter(DiffSync):
             new_dc = self.datacenter(
                 name=site.name,
                 region=site.region.name if site.region else "",
-                latitude=str(site.latitude),
-                longitude=str(site.longitude),
+                latitude=str(site.latitude).rstrip("0"),
+                longitude=str(site.longitude).rstrip("0"),
                 uuid=site.id,
             )
             self.add(new_dc)
