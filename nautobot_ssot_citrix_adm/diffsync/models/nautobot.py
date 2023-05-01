@@ -48,14 +48,16 @@ class NautobotDevice(Device):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Device in Nautobot from NautobotDevice object."""
+        lb_role, _ = DeviceRole.objects.get_or_create(name="Load-Balancer")
+        lb_dt, _ = DeviceType.objects.get_or_create(
+            model=attrs["model"], manufacturer=Manufacturer.objects.get(name="Citrix")
+        )
         new_device = NewDevice(
             name=ids["name"],
-            status=Status.objects.get_or_create(name=attrs["status"]),
-            role=DeviceRole.objects.get_or_create(name=attrs["role"]),
-            site=Site.objects.get_or_create(name=attrs["site"]),
-            device_type=DeviceType.objects.get_or_create(
-                model=attrs["model"], manufacturer=Manufacturer.objects.get(name="Citrix")
-            ),
+            status=Status.objects.get(name=attrs["status"]),
+            role=lb_role,
+            site=Site.objects.get(name=attrs["site"]),
+            device_type=lb_dt,
             serial=attrs["serial"],
             platform=Platform.objects.get(slug="netscaler"),
         )
@@ -70,7 +72,7 @@ class NautobotDevice(Device):
         if "status" in attrs:
             device.status = Status.objects.get(name=attrs["status"])
         if "role" in attrs:
-            device.role = DeviceRole.objects.get_or_create(name=attrs["role"])
+            device.role, _ = DeviceRole.objects.get_or_create(name="Load-Balancer")
         if "site" in attrs:
             device.site = Site.objects.get(name=attrs["site"])
         if attrs.get("version"):
