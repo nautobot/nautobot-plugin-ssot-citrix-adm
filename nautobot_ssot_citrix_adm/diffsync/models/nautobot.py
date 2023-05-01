@@ -20,7 +20,7 @@ class NautobotDatacenter(Datacenter):
             longitude=attrs["longitude"],
         )
         if ids.get("region"):
-            new_site.region = Region.objects.get_or_create(name=ids["region"])
+            new_site.region, _ = Region.objects.get_or_create(name=ids["region"])
         new_site.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
