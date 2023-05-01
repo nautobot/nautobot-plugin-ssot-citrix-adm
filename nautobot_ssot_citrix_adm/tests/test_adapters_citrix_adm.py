@@ -113,7 +113,20 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
             for port in PORT_FIXTURE_RECV
         ]
         actual_addrs = [addr.get_unique_id() for addr in self.citrix_adm.get_all("address")]
-        print(expected_addrs)
-        print(actual_addrs)
         for addr in expected_addrs:
             self.assertTrue(addr in actual_addrs)
+
+    def test_management_port_updated(self):
+        """Test the Nautobot SSoT Citrix ADM updates management port if IP found on another."""
+        update_port = {
+            "devicename": "LO/1",
+            "ns_ip_address": "85.52.0.128",
+            "state": "ENABLED",
+            "hostname": "OLQE-WHOO-KAL-WKH-SndJhcc3-X",
+            "description": "",
+        }
+        self.citrix_adm_client.get_ports.return_value = PORT_FIXTURE_RECV + [update_port]
+        self.citrix_adm.load_ports()
+        self.job.log_info.assert_called_with(
+            message="Management address 85.52.0.128 found on LO/1 so updating DiffSync models to use this port."
+        )
