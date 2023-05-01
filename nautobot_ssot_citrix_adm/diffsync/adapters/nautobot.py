@@ -39,7 +39,7 @@ class NautobotAdapter(DiffSync):
             self.job.log_info(message=f"Loading Site {site.name} from Nautobot.")
             new_dc = self.datacenter(
                 name=site.name,
-                region=site.region.name if site.region else None,
+                region=site.region.name if site.region else "",
                 latitude=str(site.latitude),
                 longitude=str(site.longitude),
                 uuid=site.id,
