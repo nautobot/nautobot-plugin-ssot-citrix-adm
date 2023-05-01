@@ -53,7 +53,7 @@ class NautobotAdapter(DiffSync):
             new_dev = self.device(
                 name=dev.name,
                 model=dev.device_type.model,
-                serial=dev.serial_number,
+                serial=dev.serial,
                 site=dev.site.name,
                 status=dev.status.name,
                 version=dev._custom_field_data["os_version"],
