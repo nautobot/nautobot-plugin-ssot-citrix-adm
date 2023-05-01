@@ -37,7 +37,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
     def test_load_sites(self):
         """Test Nautobot SSoT Citrix ADM load_sites() function."""
         self.assertEqual(
-            {f"{site['name']}__{site['region']}" for site in SITE_FIXTURE_RECV},
+            {f"{site['name']}__{site['region']}" for site in SITE_FIXTURE_RECV if site.get("name") != "Default"},
             {site.get_unique_id() for site in self.citrix_adm.get_all("datacenter")},
         )
         self.job.log_info.assert_called_with(
