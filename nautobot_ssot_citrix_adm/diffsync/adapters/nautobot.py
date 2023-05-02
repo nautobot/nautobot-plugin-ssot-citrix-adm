@@ -1,6 +1,7 @@
 """Nautobot Adapter for Citrix ADM SSoT plugin."""
 
 from collections import defaultdict
+from django.db.models import ProtectedError
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
 from nautobot.dcim.models import Device as OrmDevice, Interface, Site
@@ -107,6 +108,9 @@ class NautobotAdapter(DiffSync):
         Args:
             source (DiffSync): DiffSync
         """
+        self.job.log_info(message="Sync is complete. Labelling imported objects from Citrix ADM.")
+        source.label_imported_objects(target=self)
+
         for grouping in ["sites"]:
             for nautobot_obj in self.objects_to_delete[grouping]:
                 try:

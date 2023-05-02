@@ -1,8 +1,13 @@
 """Nautobot SSoT Citrix ADM Adapter for Citrix ADM SSoT plugin."""
-
+from datetime import datetime
+from django.contrib.contenttypes.models import ContentType
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
 from netutils.ip import netmask_to_cidr
+from nautobot.dcim.models import Device, Interface, Site
+from nautobot.extras.choices import CustomFieldTypeChoices
+from nautobot.extras.models import CustomField
+from nautobot.ipam.models import IPAddress
 from nautobot_ssot_citrix_adm.diffsync.models.citrix_adm import (
     CitrixAdmDatacenter,
     CitrixAdmDevice,
@@ -10,6 +15,59 @@ from nautobot_ssot_citrix_adm.diffsync.models.citrix_adm import (
     CitrixAdmAddress,
 )
 from nautobot_ssot_citrix_adm.utils.citrix_adm import parse_version, CitrixNitroClient
+
+
+class LabelMixin:
+    """Add labels onto Nautobot objects to provide information on sync status with DNA Center."""
+
+    def label_imported_objects(self, target):
+        """Add CustomFields to all objects that were successfully synced to the target."""
+        # Ensure that the "ssot-last-synchronized" custom field is present; as above, it *should* already exist.
+        cf_dict = {
+            "type": CustomFieldTypeChoices.TYPE_DATE,
+            "name": "ssot_last_synchronized",
+            "slug": "ssot_last_synchronized",
+            "label": "Last sync from System of Record",
+        }
+        custom_field, _ = CustomField.objects.get_or_create(name=cf_dict["name"], defaults=cf_dict)
+        for model in [Device, Interface, IPAddress]:
+            custom_field.content_types.add(ContentType.objects.get_for_model(model))
+
+        for modelname in ["datacenter", "device", "port", "address"]:
+            for local_instance in self.get_all(modelname):
+                unique_id = local_instance.get_unique_id()
+                # Verify that the object now has a counterpart in the target DiffSync
+                try:
+                    target.get(modelname, unique_id)
+                except ObjectNotFound:
+                    continue
+
+                self.label_object(modelname, unique_id, custom_field)
+
+    def label_object(self, modelname, unique_id, custom_field):
+        """Apply the given CustomField to the identified object."""
+        model_instance = self.get(modelname, unique_id)
+        today = datetime.now().today()
+
+        def _label_object(nautobot_object):
+            """Apply custom field to object, if applicable."""
+            nautobot_object.custom_field_data[custom_field.name] = today
+            nautobot_object.custom_field_data["system_of_record"] = "Citrix ADM"
+            nautobot_object.validated_save()
+
+        if modelname == "datacenter":
+            _label_object(Site.objects.get(name=model_instance.name))
+        elif modelname == "device":
+            _label_object(Device.objects.get(name=model_instance.name))
+        elif modelname == "port":
+            _label_object(Interface.objects.get(name=model_instance.name, device__name=model_instance.device))
+        elif modelname == "address":
+            _label_object(
+                IPAddress.objects.get(
+                    address=model_instance.address,
+                    interface=Interface.objects.get(device__name=model_instance.device, name=model_instance.interface),
+                )
+            )
 
 
 class CitrixAdmAdapter(DiffSync):
