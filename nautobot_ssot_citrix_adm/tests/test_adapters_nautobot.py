@@ -13,6 +13,7 @@ from nautobot.dcim.models import (
     Site,
 )
 from nautobot.extras.models import Status, Job, JobResult
+from nautobot.ipam.models import IPAddress
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_citrix_adm.diffsync.adapters.nautobot import NautobotAdapter
 from nautobot_ssot_citrix_adm.jobs import CitrixAdmDataSource
@@ -68,6 +69,25 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         mgmt_intf = Interface.objects.create(name="Management", type="virtual", device=core_router)
         mgmt_intf.validated_save()
 
+        mgmt_addr = IPAddress.objects.create(
+            address="10.1.1.1/24",
+            assigned_object_id=mgmt_intf.id,
+            assigned_object_type=ContentType.objects.get_for_model(Interface),
+            status=self.status_active,
+        )
+        mgmt_addr.validated_save()
+        mgmt_addr6 = IPAddress.objects.create(
+            address="2001:db8:3333:4444:5555:6666:7777:8888/128",
+            assigned_object_id=mgmt_intf.id,
+            assigned_object_type=ContentType.objects.get_for_model(Interface),
+            status=self.status_active,
+        )
+        mgmt_addr6.validated_save()
+
+        core_router.primary_ip4 = mgmt_addr
+        core_router.primary_ip6 = mgmt_addr6
+        core_router.validated_save()
+
     def test_load_sites(self):
         """Test the load_sites() function."""
         self.nb_adapter.load_sites()
@@ -105,3 +125,26 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.job.log_warning.assert_called_once_with(
             message="Unable to find edge-fw.test.com loaded so skipping loading port Management."
         )
+
+    def test_load_addresses(self):
+        """Test the load_addresses() function."""
+        self.nb_adapter.load_addresses()
+        self.assertEqual(
+            {
+                "10.1.1.1/24__edge-fw.test.com__Management",
+                "2001:db8:3333:4444:5555:6666:7777:8888/128__edge-fw.test.com__Management",
+            },
+            {addr.get_unique_id() for addr in self.nb_adapter.get_all("address")},
+        )
+
+    def test_load(self):
+        """Test the load() function."""
+        self.nb_adapter.load_sites = MagicMock()
+        self.nb_adapter.load_devices = MagicMock()
+        self.nb_adapter.load_ports = MagicMock()
+        self.nb_adapter.load_addresses = MagicMock()
+        self.nb_adapter.load()
+        self.nb_adapter.load_sites.assert_called_once()
+        self.nb_adapter.load_devices.assert_called_once()
+        self.nb_adapter.load_ports.assert_called_once()
+        self.nb_adapter.load_addresses.assert_called_once()
