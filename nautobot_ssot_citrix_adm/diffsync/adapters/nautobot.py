@@ -1,5 +1,6 @@
 """Nautobot Adapter for Citrix ADM SSoT plugin."""
 
+from collections import defaultdict
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
 from nautobot.dcim.models import Device as OrmDevice, Interface, Site
@@ -32,6 +33,7 @@ class NautobotAdapter(DiffSync):
         super().__init__(*args, **kwargs)
         self.job = job
         self.sync = sync
+        self.objects_to_delete = defaultdict(list)
 
     def load_sites(self):
         """Load Sites from Nautobot into DiffSync models."""
@@ -95,6 +97,25 @@ class NautobotAdapter(DiffSync):
                 uuid=addr.id,
             )
             self.add(new_ip)
+
+    def sync_complete(self, source: DiffSync, *args, **kwargs):
+        """Label and clean up function for DiffSync sync.
+
+        Once the sync is complete, this function labels all imported objects and then
+        deletes any objects from Nautobot that need to be deleted in a specific order.
+
+        Args:
+            source (DiffSync): DiffSync
+        """
+        for grouping in ["sites"]:
+            for nautobot_obj in self.objects_to_delete[grouping]:
+                try:
+                    self.job.log_info(message=f"Deleting {nautobot_obj}.")
+                    nautobot_obj.delete()
+                except ProtectedError:
+                    self.job.log_info(message=f"Deletion failed protected object: {nautobot_obj}")
+            self.objects_to_delete[grouping] = []
+        return super().sync_complete(source, *args, **kwargs)
 
     def load(self):
         """Load data from Nautobot into DiffSync models."""

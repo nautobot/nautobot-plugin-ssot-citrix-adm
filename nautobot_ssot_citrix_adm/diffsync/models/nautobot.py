@@ -37,8 +37,8 @@ class NautobotDatacenter(Datacenter):
     def delete(self):
         """Delete Site in Nautobot from NautobotDatacenter object."""
         site = Site.objects.get(id=self.uuid)
-        super().delete()
-        site.delete()
+        self.diffsync.job.log_info(message=f"Deleting Site {site.name}.")
+        self.diffsync.objects_to_delete["sites"].append(site)
         return self
 
 
