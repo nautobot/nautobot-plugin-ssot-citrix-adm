@@ -70,7 +70,7 @@ class LabelMixin:
             )
 
 
-class CitrixAdmAdapter(DiffSync):
+class CitrixAdmAdapter(DiffSync, LabelMixin):
     """DiffSync adapter for Citrix ADM."""
 
     datacenter = CitrixAdmDatacenter
