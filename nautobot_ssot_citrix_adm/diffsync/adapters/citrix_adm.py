@@ -65,7 +65,7 @@ class LabelMixin:
             _label_object(
                 IPAddress.objects.get(
                     address=model_instance.address,
-                    interface=Interface.objects.get(device__name=model_instance.device, name=model_instance.interface),
+                    interface=Interface.objects.get(device__name=model_instance.device, name=model_instance.port),
                 )
             )
 
