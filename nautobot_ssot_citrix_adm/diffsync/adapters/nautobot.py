@@ -89,8 +89,8 @@ class NautobotAdapter(DiffSync):
                 primary = hasattr(addr, "primary_ip6_for")
             new_ip = self.address(
                 address=str(addr.address),
-                device=addr.connected_object.device.name if addr.connected_object else "",
-                port=addr.connected_object.name if addr.connected_object else "",
+                device=addr.assigned_object.device.name if addr.assigned_object else "",
+                port=addr.assigned_object.name if addr.assigned_object else "",
                 primary=primary,
                 uuid=addr.id,
             )
@@ -101,3 +101,4 @@ class NautobotAdapter(DiffSync):
         self.load_sites()
         self.load_devices()
         self.load_ports()
+        self.load_addresses()
