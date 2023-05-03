@@ -18,7 +18,7 @@ from nautobot_ssot_citrix_adm.utils.citrix_adm import parse_version, CitrixNitro
 
 
 class LabelMixin:
-    """Add labels onto Nautobot objects to provide information on sync status with DNA Center."""
+    """Add labels onto Nautobot objects to provide information on sync status with Citrix ADM."""
 
     def label_imported_objects(self, target):
         """Add CustomFields to all objects that were successfully synced to the target."""
