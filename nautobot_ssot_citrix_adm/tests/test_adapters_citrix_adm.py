@@ -5,7 +5,8 @@ from unittest.mock import MagicMock
 from diffsync.exceptions import ObjectNotFound
 from django.contrib.contenttypes.models import ContentType
 from netutils.ip import netmask_to_cidr
-from nautobot.extras.models import Job, JobResult
+from nautobot.extras.choices import CustomFieldTypeChoices
+from nautobot.extras.models import CustomField, Job, JobResult
 from nautobot.utilities.testing import TransactionTestCase
 from nautobot_ssot_citrix_adm.diffsync.adapters.citrix_adm import CitrixAdmAdapter
 from nautobot_ssot_citrix_adm.jobs import CitrixAdmDataSource
@@ -19,6 +20,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
 
     def setUp(self):
         """Initialize test case."""
+        super().setUp()
         self.citrix_adm_client = MagicMock()
         self.citrix_adm_client.get_sites.return_value = SITE_FIXTURE_RECV
         self.citrix_adm_client.get_devices.return_value = DEVICE_FIXTURE_RECV
@@ -130,3 +132,16 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
         self.job.log_info.assert_called_with(
             message="Management address 85.52.0.128 found on LO/1 so updating DiffSync models to use this port."
         )
+
+    def test_label_imported_objects_custom_field(self):
+        """Validate the label_imported_objects() successfully creates CustomField."""
+        target = MagicMock()
+        self.citrix_adm.label_object = MagicMock()
+        self.citrix_adm.label_imported_objects(target)
+        dev_customfield = CustomField.objects.get(name="ssot_last_synchronized")
+        self.assertEqual(dev_customfield.type, CustomFieldTypeChoices.TYPE_DATE)
+        self.assertEqual(dev_customfield.label, "Last sync from System of Record")
+        device_ct = ContentType.objects.get_for_model(Device)
+        self.assertIn(dev_customfield, device_ct.custom_fields.all())
+        self.citrix_adm.label_object.assert_called()
+
