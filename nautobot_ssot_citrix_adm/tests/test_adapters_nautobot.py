@@ -137,6 +137,25 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             {addr.get_unique_id() for addr in self.nb_adapter.get_all("address")},
         )
 
+    def test_sync_complete(self):
+        """Test the sync_complete() method in the NautobotAdapter."""
+        self.nb_adapter.objects_to_delete = {"sites": [MagicMock()]}
+        self.nb_adapter.job = MagicMock()
+        self.nb_adapter.job.log_info = MagicMock()
+
+        deleted_objs = []
+        for group in ["sites"]:
+            deleted_objs.extend(self.nb_adapter.objects_to_delete[group])
+
+        self.nb_adapter.sync_complete(diff=MagicMock(), source=MagicMock())
+
+        for obj in deleted_objs:
+            self.assertTrue(obj.delete.called)
+        self.assertEqual(len(self.nb_adapter.objects_to_delete["sites"]), 0)
+        self.assertTrue(self.nb_adapter.job.log_info.called)
+        self.assertTrue(self.nb_adapter.job.log_info.call_count, 2)
+        self.assertTrue(self.nb_adapter.job.log_info.call_args_list[0].startswith("Deleting"))
+
     def test_load(self):
         """Test the load() function."""
         self.nb_adapter.load_sites = MagicMock()
