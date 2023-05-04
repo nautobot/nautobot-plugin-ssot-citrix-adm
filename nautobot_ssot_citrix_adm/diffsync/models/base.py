@@ -2,10 +2,13 @@
 from typing import List, Optional
 from uuid import UUID
 from diffsync import DiffSyncModel
+from diffsync.enum import DiffSyncModelFlags
 
 
 class Datacenter(DiffSyncModel):
     """Diffsync model for Citrix ADM datacenters."""
+
+    model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
 
     _modelname = "datacenter"
     _identifiers = (

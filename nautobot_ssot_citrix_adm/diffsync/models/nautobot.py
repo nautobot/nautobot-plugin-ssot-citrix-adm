@@ -34,13 +34,6 @@ class NautobotDatacenter(Datacenter):
         site.validated_save()
         return super().update(attrs)
 
-    def delete(self):
-        """Delete Site in Nautobot from NautobotDatacenter object."""
-        site = Site.objects.get(id=self.uuid)
-        self.diffsync.job.log_info(message=f"Deleting Site {site.name}.")
-        self.diffsync.objects_to_delete["sites"].append(site)
-        return self
-
 
 class NautobotDevice(Device):
     """Nautobot implementation of Citrix ADM Device model."""
