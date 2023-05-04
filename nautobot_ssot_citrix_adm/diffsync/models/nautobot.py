@@ -5,6 +5,14 @@ from nautobot.dcim.models import Region, Site, DeviceRole, DeviceType, Manufactu
 from nautobot.extras.models import Status
 from nautobot.ipam.models import IPAddress
 from nautobot_ssot_citrix_adm.diffsync.models.base import Datacenter, Device, Port, Address
+from nautobot_ssot_citrix_adm.utils.nautobot import add_software_lcm, assign_version_to_device
+
+try:
+    import nautobot_device_lifecycle_mgmt  # noqa: F401
+
+    LIFECYCLE_MGMT = True
+except ImportError:
+    LIFECYCLE_MGMT = False
 
 
 class NautobotDatacenter(Datacenter):
@@ -56,6 +64,9 @@ class NautobotDevice(Device):
         )
         if attrs.get("version"):
             new_device.custom_field_data.update({"os_version": attrs["version"]})
+            if LIFECYCLE_MGMT:
+                lcm_obj = add_software_lcm(diffsync=diffsync, platform="netscaler", version=attrs["version"])
+                assign_version_to_device(diffsync=diffsync, device=new_device, software_lcm=lcm_obj)
         new_device.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
@@ -74,8 +85,11 @@ class NautobotDevice(Device):
             device.serial = attrs["serial"]
         if "site" in attrs:
             device.site = Site.objects.get(name=attrs["site"])
-        if attrs.get("version"):
+        if "version" in attrs:
             device.custom_field_data.update({"os_version": attrs["version"]})
+            if LIFECYCLE_MGMT:
+                lcm_obj = add_software_lcm(diffsync=self.diffsync, platform="netscaler", version=attrs["version"])
+                assign_version_to_device(diffsync=self.diffsync, device=device, software_lcm=lcm_obj)
         device.validated_save()
         return super().update(attrs)
 
