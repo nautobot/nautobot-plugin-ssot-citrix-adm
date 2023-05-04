@@ -1,8 +1,13 @@
 """Nautobot SSoT Citrix ADM Adapter for Citrix ADM SSoT plugin."""
-
+from datetime import datetime
+from django.contrib.contenttypes.models import ContentType
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
 from netutils.ip import netmask_to_cidr
+from nautobot.dcim.models import Device, Interface
+from nautobot.extras.choices import CustomFieldTypeChoices
+from nautobot.extras.models import CustomField
+from nautobot.ipam.models import IPAddress
 from nautobot_ssot_citrix_adm.diffsync.models.citrix_adm import (
     CitrixAdmDatacenter,
     CitrixAdmDevice,
@@ -12,7 +17,82 @@ from nautobot_ssot_citrix_adm.diffsync.models.citrix_adm import (
 from nautobot_ssot_citrix_adm.utils.citrix_adm import parse_version, CitrixNitroClient
 
 
-class CitrixAdmAdapter(DiffSync):
+class LabelMixin:
+    """Add labels onto Nautobot objects to provide information on sync status with Citrix ADM."""
+
+    def label_imported_objects(self, target):
+        """Add CustomFields to all objects that were successfully synced to the target."""
+        # Ensure that the "ssot-last-synchronized" custom field is present; as above, it *should* already exist.
+        cf_dict = {
+            "type": CustomFieldTypeChoices.TYPE_DATE,
+            "name": "ssot_last_synchronized",
+            "slug": "ssot_last_synchronized",
+            "label": "Last sync from System of Record",
+        }
+        custom_field, _ = CustomField.objects.get_or_create(name=cf_dict["name"], defaults=cf_dict)
+        for model in [Device, Interface, IPAddress]:
+            custom_field.content_types.add(ContentType.objects.get_for_model(model))
+
+        for modelname in ["device", "port", "address"]:
+            for local_instance in self.get_all(modelname):
+                unique_id = local_instance.get_unique_id()
+                # Verify that the object now has a counterpart in the target DiffSync
+                try:
+                    target.get(modelname, unique_id)
+                except ObjectNotFound:
+                    continue
+
+                self.label_object(modelname, unique_id, custom_field)
+
+    def label_object(self, modelname, unique_id, custom_field):
+        """Apply the given CustomField to the identified object."""
+
+        def _label_object(nautobot_object):
+            """Apply custom field to object, if applicable."""
+            nautobot_object.custom_field_data[custom_field.name] = today
+            nautobot_object.custom_field_data["system_of_record"] = "Citrix ADM"
+            nautobot_object.validated_save()
+
+        today = datetime.now().today()
+        model_instance, name, device, port, address = None, None, None, None, None
+        try:
+            model_instance = self.get(modelname, unique_id)
+        except ObjectNotFound:
+            ids = unique_id.split("__")
+            if modelname == "address":
+                address = ids[0]
+                device = ids[1]
+                port = ids[2]
+            elif modelname == "device":
+                name = unique_id
+            elif modelname == "port":
+                name = ids[0]
+                device = ids[1]
+
+        if model_instance:
+            if hasattr(model_instance, "name"):
+                name = model_instance.name
+            if hasattr(model_instance, "device"):
+                device = model_instance.device
+            if hasattr(model_instance, "port"):
+                port = model_instance.port
+            if hasattr(model_instance, "address"):
+                address = model_instance.address
+
+        if modelname == "device" and name:
+            _label_object(Device.objects.get(name=name))
+        elif modelname == "port" and (name and device):
+            _label_object(Interface.objects.get(name=name, device__name=device))
+        elif modelname == "address" and (address and device and port):
+            _label_object(
+                IPAddress.objects.get(
+                    address=address,
+                    interface=Interface.objects.get(device__name=device, name=port),
+                )
+            )
+
+
+class CitrixAdmAdapter(DiffSync, LabelMixin):
     """DiffSync adapter for Citrix ADM."""
 
     datacenter = CitrixAdmDatacenter
@@ -20,7 +100,7 @@ class CitrixAdmAdapter(DiffSync):
     address = CitrixAdmAddress
     port = CitrixAdmPort
 
-    top_level = ["datacenter", "device", "port", "address"]
+    top_level = ["datacenter", "device", "address"]
 
     def __init__(self, *args, job=None, sync=None, client: CitrixNitroClient, **kwargs):
         """Initialize Citrix ADM.
@@ -41,6 +121,9 @@ class CitrixAdmAdapter(DiffSync):
         """Load sites from Citrix ADM into DiffSync models."""
         sites = self.conn.get_sites()
         for site in sites:
+            if site.get("name") == "Default":
+                self.job.log_info("Skipping loading of Default datacenter.")
+                continue
             try:
                 found_site = self.get(self.datacenter, {"name": site.get("name"), "region": site.get("region")})
                 if found_site:
@@ -62,6 +145,9 @@ class CitrixAdmAdapter(DiffSync):
         """Load devices from Citrix ADM into DiffSync models."""
         devices = self.conn.get_devices()
         for dev in devices:
+            if not dev.get("hostname"):
+                self.job.log_warning(message=f"Device without hostname will not be loaded. {dev}")
+                continue
             try:
                 found_dev = self.get(self.device, dev["hostname"])
                 if found_dev:
@@ -83,14 +169,15 @@ class CitrixAdmAdapter(DiffSync):
                     try:
                         _ = self.get(self.port, {"name": "Management", "device": dev["hostname"], "port": "Management"})
                     except ObjectNotFound:
-                        self.add_port(dev_name=dev["hostname"])
+                        mgmt_port = self.add_port(dev_name=dev["hostname"])
+                        new_dev.add_child(mgmt_port)
                         try:
                             _ = self.get(
                                 self.address,
                                 {"address": address, "device": dev["hostname"], "port": "Management"},
                             )
                         except ObjectNotFound:
-                            self.load_address(address=address, device=dev["hostname"], port="Management")
+                            self.load_address(address=address, device=dev["hostname"], port="Management", primary=True)
 
     def load_ports(self):
         """Load ports from Citrix ADM into DiffSync models."""
@@ -165,18 +252,20 @@ class CitrixAdmAdapter(DiffSync):
         self.add(new_port)
         return new_port
 
-    def load_address(self, address: str, device: str, port: str):
+    def load_address(self, address: str, device: str, port: str, primary: bool = False):
         """Load CitrixAdmAddress DiffSync model with specified data.
 
         Args:
             address (str): IP Address to be loaded.
             device (str): Device that IP resides on.
             port (str): Interface that IP is configured on.
+            primary (str): Whether the IP is primary IP for assigned device. Defaults to False.
         """
         new_addr = self.address(
             address=address,
             device=device,
             port=port,
+            primary=primary,
             uuid=None,
         )
         self.add(new_addr)

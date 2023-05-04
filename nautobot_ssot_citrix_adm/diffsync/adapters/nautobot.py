@@ -1,5 +1,7 @@
 """Nautobot Adapter for Citrix ADM SSoT plugin."""
 
+from collections import defaultdict
+from django.db.models import ProtectedError
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
 from nautobot.dcim.models import Device as OrmDevice, Interface, Site
@@ -20,7 +22,7 @@ class NautobotAdapter(DiffSync):
     port = NautobotPort
     address = NautobotAddress
 
-    top_level = ["datacenter", "device", "port", "address"]
+    top_level = ["datacenter", "device", "address"]
 
     def __init__(self, *args, job=None, sync=None, **kwargs):
         """Initialize Nautobot.
@@ -32,6 +34,7 @@ class NautobotAdapter(DiffSync):
         super().__init__(*args, **kwargs)
         self.job = job
         self.sync = sync
+        self.objects_to_delete = defaultdict(list)
 
     def load_sites(self):
         """Load Sites from Nautobot into DiffSync models."""
@@ -39,9 +42,9 @@ class NautobotAdapter(DiffSync):
             self.job.log_info(message=f"Loading Site {site.name} from Nautobot.")
             new_dc = self.datacenter(
                 name=site.name,
-                region=site.region.name,
-                latitude=site.latitude,
-                longitude=site.longitude,
+                region=site.region.name if site.region else "",
+                latitude=str(site.latitude).rstrip("0"),
+                longitude=str(site.longitude).rstrip("0"),
                 uuid=site.id,
             )
             self.add(new_dc)
@@ -53,7 +56,7 @@ class NautobotAdapter(DiffSync):
             new_dev = self.device(
                 name=dev.name,
                 model=dev.device_type.model,
-                serial=dev.serial_number,
+                serial=dev.serial,
                 site=dev.site.name,
                 status=dev.status.name,
                 version=dev._custom_field_data["os_version"],
@@ -83,16 +86,44 @@ class NautobotAdapter(DiffSync):
     def load_addresses(self):
         """Load IP Addresses from Nautobot into DiffSync models."""
         for addr in IPAddress.objects.all():
+            if addr.family == 4:
+                primary = hasattr(addr, "primary_ip4_for")
+            else:
+                primary = hasattr(addr, "primary_ip6_for")
             new_ip = self.address(
                 address=str(addr.address),
-                device=addr.connected_object.device.name if addr.connected_object else "",
-                port=addr.connected_object.name if addr.connected_object else "",
+                device=addr.assigned_object.device.name if addr.assigned_object else "",
+                port=addr.assigned_object.name if addr.assigned_object else "",
+                primary=primary,
                 uuid=addr.id,
             )
             self.add(new_ip)
+
+    def sync_complete(self, source: DiffSync, *args, **kwargs):
+        """Label and clean up function for DiffSync sync.
+
+        Once the sync is complete, this function labels all imported objects and then
+        deletes any objects from Nautobot that need to be deleted in a specific order.
+
+        Args:
+            source (DiffSync): DiffSync
+        """
+        self.job.log_info(message="Sync is complete. Labelling imported objects from Citrix ADM.")
+        source.label_imported_objects(target=self)
+
+        for grouping in ["sites"]:
+            for nautobot_obj in self.objects_to_delete[grouping]:
+                try:
+                    self.job.log_info(message=f"Deleting {nautobot_obj}.")
+                    nautobot_obj.delete()
+                except ProtectedError:
+                    self.job.log_info(message=f"Deletion failed protected object: {nautobot_obj}")
+            self.objects_to_delete[grouping] = []
+        return super().sync_complete(source, *args, **kwargs)
 
     def load(self):
         """Load data from Nautobot into DiffSync models."""
         self.load_sites()
         self.load_devices()
         self.load_ports()
+        self.load_addresses()
