@@ -2343,14 +2343,14 @@ files = [
 
 [[package]]
 name = "nautobot"
-version = "1.5.16"
+version = "1.5.18"
 description = "Source of truth and network automation platform."
 category = "main"
 optional = true
 python-versions = ">=3.7,<4.0"
 files = [
-    {file = "nautobot-1.5.16-py3-none-any.whl", hash = "sha256:9ca3c5e277377155549ffe5a3c2b886ee148c1639fced438eb4f08ba8f7bcec1"},
-    {file = "nautobot-1.5.16.tar.gz", hash = "sha256:36b73ffc8b63c2e2667cbc40b05137fd9291335d652adb088c364f546add9adf"},
+    {file = "nautobot-1.5.18-py3-none-any.whl", hash = "sha256:fe294c516f6e56a6036d54b52a476ef334c01208d53fcbb25c3f575c264cb89c"},
+    {file = "nautobot-1.5.18.tar.gz", hash = "sha256:8fd31dc8e1c92d61b79de32eb596288744f2c38a06c47bf925b75f3d277d7988"},
 ]
 
 [package.dependencies]
@@ -2389,6 +2389,7 @@ Markdown = ">=3.3.7,<3.4.0"
 MarkupSafe = ">=2.1.1,<2.2.0"
 netaddr = ">=0.8.0,<0.9.0"
 netutils = ">=1.4.1,<2.0.0"
+packaging = ">=23.0,<23.1"
 Pillow = ">=9.3.0,<9.4.0"
 prometheus-client = ">=0.14.1,<0.15.0"
 psycopg2-binary = ">=2.9.5,<2.10.0"
@@ -2528,14 +2529,14 @@ signedtoken = ["cryptography (>=3.0.0)", "pyjwt (>=2.0.0,<3)"]
 
 [[package]]
 name = "packaging"
-version = "23.1"
+version = "23.0"
 description = "Core utilities for Python packages"
 category = "main"
 optional = false
 python-versions = ">=3.7"
 files = [
-    {file = "packaging-23.1-py3-none-any.whl", hash = "sha256:994793af429502c4ea2ebf6bf664629d07c1a9fe974af92966e4b8d2df7edc61"},
-    {file = "packaging-23.1.tar.gz", hash = "sha256:a392980d2b6cffa644431898be54b0045151319d1e7ec34f0cfed48767dd334f"},
+    {file = "packaging-23.0-py3-none-any.whl", hash = "sha256:714ac14496c3e68c99c29b00845f7a2b85f3bb6f1078fd9f72fd20f0570002b2"},
+    {file = "packaging-23.0.tar.gz", hash = "sha256:b6ad297f8907de0fa2fe1ccbd26fdaf387f5f47c7275fedf8cce89f99446cf97"},
 ]
 
 [[package]]
@@ -4296,9 +4297,9 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 
 [extras]
 nautobot = ["nautobot"]
-nautobot-device-lifecyle-mgmt = ["nautobot-device-lifecycle-mgmt"]
+nautobot-device-lifecycle-mgmt = ["nautobot-device-lifecycle-mgmt"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.7"
-content-hash = "dea410fb32100f9ab867c02876f16dc7ac5821501362835591b9db01b37ea2c0"
+content-hash = "b21e6e30c09afbd7acf86bff8782ed0d3efafa190a6ff3c6a7b3041b3e53d417"
