@@ -4,7 +4,7 @@ from django.contrib.contenttypes.models import ContentType
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
 from netutils.ip import netmask_to_cidr
-from nautobot.dcim.models import Device, Interface, Site
+from nautobot.dcim.models import Device, Interface
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField
 from nautobot.ipam.models import IPAddress
