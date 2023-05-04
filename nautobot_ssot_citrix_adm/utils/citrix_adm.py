@@ -39,7 +39,7 @@ class CitrixNitroClient:
         response = self.request(method="POST", endpoint=url, objecttype=objecttype, data=payload)
         if response:
             session_id = response["login"][0]["sessionid"]
-            self.headers["Set-Cookie"] = f"SESSID={session_id}; path=/; SameSite=Lax; secure; HttpOnly"
+            self.headers["Cookie"] = f"SESSID={session_id}; path=/; SameSite=Lax; secure; HttpOnly"
         else:
             self.log.log_failure(
                 message="Error while logging into Citrix ADM. Please validate your configuration is correct."
@@ -49,7 +49,9 @@ class CitrixNitroClient:
         """Best practice to logout when session is complete."""
         url = "config"
         objecttype = "logout"
-        self.request(method="POST", endpoint=url, objecttype=objecttype)
+        logout = {"logout": {"username": self.username, "password": self.password}}
+        payload = f"object={logout}"
+        self.request(method="POST", endpoint=url, objecttype=objecttype, data=payload)
 
     def request(  # pylint: disable=too-many-arguments
         self,

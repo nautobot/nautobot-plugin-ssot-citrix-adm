@@ -5,10 +5,11 @@ try:
 except ImportError:
     # Python version < 3.8
     import importlib_metadata as metadata
+from nautobot.core.signals import nautobot_database_ready
+from nautobot.extras.plugins import PluginConfig
+from nautobot_ssot_citrix_adm.signals import nautobot_database_ready_callback
 
 __version__ = metadata.version(__name__)
-
-from nautobot.extras.plugins import PluginConfig
 
 
 class NautobotSsotCitrixAdmConfig(PluginConfig):
@@ -25,6 +26,12 @@ class NautobotSsotCitrixAdmConfig(PluginConfig):
     max_version = "1.9999"
     default_settings = {}
     caching_config = {}
+
+    def ready(self):
+        """Trigger callback when database is ready."""
+        super().ready()
+
+        nautobot_database_ready.connect(nautobot_database_ready_callback, sender=self)
 
 
 config = NautobotSsotCitrixAdmConfig  # pylint:disable=invalid-name

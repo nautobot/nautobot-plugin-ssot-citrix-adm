@@ -46,7 +46,7 @@ class TestCitrixAdmClient(TestCase):
         mock_response = {"login": [{"sessionid": "1234"}]}
         mock_request.return_value = mock_response
         self.client.login()
-        self.assertEqual(self.client.headers["Set-Cookie"], "SESSID=1234; path=/; SameSite=Lax; secure; HttpOnly")
+        self.assertEqual(self.client.headers["Cookie"], "SESSID=1234; path=/; SameSite=Lax; secure; HttpOnly")
 
     @patch.object(CitrixNitroClient, "request")
     def test_login_failure(self, mock_request):
@@ -63,7 +63,12 @@ class TestCitrixAdmClient(TestCase):
     def test_logout(self, mock_request):
         """Validate functionality of the logout() method success."""
         self.client.logout()
-        mock_request.assert_called_with(method="POST", endpoint="config", objecttype="logout")
+        mock_request.assert_called_with(
+            method="POST",
+            endpoint="config",
+            objecttype="logout",
+            data="object={'logout': {'username': 'user', 'password': 'password'}}",
+        )
 
     @patch("nautobot_ssot_citrix_adm.utils.citrix_adm.requests.request")
     def test_request(self, mock_request):
