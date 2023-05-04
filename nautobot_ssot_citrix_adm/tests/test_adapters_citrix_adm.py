@@ -145,3 +145,14 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):
         self.assertIn(dev_customfield, device_ct.custom_fields.all())
         self.citrix_adm.label_object.assert_called()
 
+    def test_label_imported_objects_not_found(self):
+        """Validate the label_imported_objects() handling ObjectNotFound."""
+        mock_response = MagicMock()
+        mock_response.get_unique_id = MagicMock()
+        mock_response.get_unique_id.return_value = "Test"
+
+        target = MagicMock()
+        target.get = MagicMock(side_effect=ObjectNotFound)
+        self.citrix_adm.label_object = MagicMock()
+        self.citrix_adm.label_imported_objects(target)
+        self.citrix_adm.label_object.assert_not_called()
