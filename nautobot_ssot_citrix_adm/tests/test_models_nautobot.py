@@ -1,5 +1,5 @@
 """Test the Nautobot CRUD functions for all DiffSync models."""
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 from diffsync import DiffSync
 from nautobot.dcim.models import Region, Site
 from nautobot.extras.models import Status
