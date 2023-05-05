@@ -1,17 +1,13 @@
 """Tests to validate utility functions for Nautobot."""
+import sys
+from unittest import skip
 from unittest.mock import MagicMock
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import Device, DeviceRole, DeviceType, Manufacturer, Platform, Site
 from nautobot.extras.models import Relationship, RelationshipAssociation, Status
 from nautobot.utilities.testing import TransactionTestCase
+from nautobot_device_lifecycle_mgmt.models import SoftwareLCM
 from nautobot_ssot_citrix_adm.utils.nautobot import add_software_lcm, assign_version_to_device
-
-try:  # pylint: disable=duplicate-code
-    from nautobot_device_lifecycle_mgmt.models import SoftwareLCM
-
-    LIFECYCLE_MGMT = True
-except ImportError:
-    LIFECYCLE_MGMT = False
 
 
 class TestUtilsNautobot(TransactionTestCase):  # pylint: disable=too-many-instance-attributes
@@ -76,3 +72,16 @@ class TestUtilsNautobot(TransactionTestCase):  # pylint: disable=too-many-instan
         self.diffsync.job.log_warning.assert_called_once_with(
             message="Deleting Software Version Relationships for Test to assign a new version."
         )
+
+    @skip("TODO")
+    def test_device_lifecycle_management_import_fails(self):
+        """Validate that the LIFECYCLE_MGMT variable is set to False if DLC module can't be imported."""
+        sys.path = []
+        with self.assertRaises(ImportError):
+            from nautobot_device_lifecycle_mgmt.models import (  # noqa: F401, pylint: disable=redefined-outer-name,reimported,import-outside-toplevel,unused-import
+                SoftwareLCM,
+            )
+            from nautobot_ssot_citrix_adm.utils.nautobot import (  # pylint: disable=import-outside-toplevel
+                LIFECYCLE_MGMT,
+            )
+        self.assertFalse(LIFECYCLE_MGMT)
