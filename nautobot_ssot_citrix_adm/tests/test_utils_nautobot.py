@@ -1,9 +1,10 @@
 """Tests to validate utility functions for Nautobot."""
-
 from unittest.mock import MagicMock
-from nautobot.dcim.models import Platform
+from django.contrib.contenttypes.models import ContentType
+from nautobot.dcim.models import Device, DeviceRole, DeviceType, Manufacturer, Platform, Site
+from nautobot.extras.models import Relationship, RelationshipAssociation, Status
 from nautobot.utilities.testing import TransactionTestCase
-from nautobot_ssot_citrix_adm.utils.nautobot import add_software_lcm
+from nautobot_ssot_citrix_adm.utils.nautobot import add_software_lcm, assign_version_to_device
 
 try:  # pylint: disable=duplicate-code
     from nautobot_device_lifecycle_mgmt.models import SoftwareLCM
@@ -13,23 +14,32 @@ except ImportError:
     LIFECYCLE_MGMT = False
 
 
-class TestUtilsNautobot(TransactionTestCase):
+class TestUtilsNautobot(TransactionTestCase):  # pylint: disable=too-many-instance-attributes
     """Test Nautobot utility functions."""
 
     databases = ("default", "job_logs")
 
     def setUp(self):
         """Setup shared objects for testing."""
+        super().setUp()
+        self.active_status = Status.objects.get(name="Active")
+        self.site, _ = Site.objects.get_or_create(name="DC1")
         self.platform, _ = Platform.objects.get_or_create(name="Test")
+        self.manufacturer, _ = Manufacturer.objects.get_or_create(name="Citrix")
+        self.device_type, _ = DeviceType.objects.get_or_create(model="SDX", manufacturer=self.manufacturer)
+        self.device_role, _ = DeviceRole.objects.get_or_create(name="test")
+        self.device, _ = Device.objects.get_or_create(
+            name="Test", device_role=self.device_role, device_type=self.device_type, site=self.site
+        )
+        self.software_lcm, _ = SoftwareLCM.objects.get_or_create(version="1.0", device_platform=self.platform)
         self.diffsync = MagicMock()
         self.diffsync.job.log_info = MagicMock()
 
     def test_add_software_lcm_existing_version(self):
         """Test the add_software_lcm() function with an existing version."""
         version = "1.0"
-        soft_lcm = SoftwareLCM.objects.create(device_platform=self.platform, version=version)
         result = add_software_lcm(self.diffsync, self.platform.slug, version)
-        self.assertEqual(result, soft_lcm.id)
+        self.assertEqual(result, self.software_lcm.id)
         self.diffsync.job.log_info.assert_not_called()
 
     def test_add_software_lcm_new_version(self):
@@ -39,3 +49,13 @@ class TestUtilsNautobot(TransactionTestCase):
         soft_lcm = SoftwareLCM.objects.get(device_platform=self.platform, version=version)
         self.assertEqual(result, soft_lcm.id)
         self.diffsync.job.log_info.assert_called_once_with(message="Creating Version 2.0 for Test.")
+
+    def test_assign_version_to_device_new_relationship(self):
+        """Test the assign_version_to_device() function with a new Relationship."""
+        assign_version_to_device(self.diffsync, self.device, self.software_lcm.id)
+        relationship = Relationship.objects.get(slug="device_soft")
+        association = RelationshipAssociation.objects.get(relationship=relationship, destination_id=self.device.id)
+        self.assertEqual(association.source_type, ContentType.objects.get_for_model(SoftwareLCM))
+        self.assertEqual(association.source_id, self.software_lcm.id)
+        self.assertEqual(association.destination_type, ContentType.objects.get_for_model(Device))
+        self.assertEqual(association.destination_id, self.device.id)
