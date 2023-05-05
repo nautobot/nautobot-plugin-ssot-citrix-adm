@@ -59,3 +59,20 @@ class TestUtilsNautobot(TransactionTestCase):  # pylint: disable=too-many-instan
         self.assertEqual(association.source_id, self.software_lcm.id)
         self.assertEqual(association.destination_type, ContentType.objects.get_for_model(Device))
         self.assertEqual(association.destination_id, self.device.id)
+
+    def test_assign_version_to_device_existing_relationship(self):
+        """Test the assign_version_to_device() function when Device already has a RelationshipAssociation."""
+        self.diffsync.job.log_warning = MagicMock()
+        assign_version_to_device(self.diffsync, self.device, self.software_lcm.id)
+        version = "3.0"
+        result = add_software_lcm(self.diffsync, self.platform.slug, version)
+        assign_version_to_device(self.diffsync, self.device, result)
+        relationship = Relationship.objects.get(slug="device_soft")
+        association = RelationshipAssociation.objects.get(relationship=relationship, destination_id=self.device.id)
+        self.assertEqual(association.source_type, ContentType.objects.get_for_model(SoftwareLCM))
+        self.assertEqual(association.source_id, result)
+        self.assertEqual(association.destination_type, ContentType.objects.get_for_model(Device))
+        self.assertEqual(association.destination_id, self.device.id)
+        self.diffsync.job.log_warning.assert_called_once_with(
+            message="Deleting Software Version Relationships for Test to assign a new version."
+        )
