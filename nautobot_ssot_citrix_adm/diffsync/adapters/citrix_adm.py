@@ -8,6 +8,7 @@ from nautobot.dcim.models import Device, Interface
 from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField
 from nautobot.ipam.models import IPAddress
+from nautobot_ssot_citrix_adm.constants import DEVICETYPE_MAP
 from nautobot_ssot_citrix_adm.diffsync.models.citrix_adm import (
     CitrixAdmDatacenter,
     CitrixAdmDevice,
@@ -155,7 +156,7 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
             except ObjectNotFound:
                 new_dev = self.device(
                     name=dev["hostname"],
-                    model=dev["type"],
+                    model=DEVICETYPE_MAP[dev["type"]] if dev["type"] in DEVICETYPE_MAP else dev["type"],
                     serial=dev["serialnumber"],
                     site=self.adm_site_map[dev["datacenter_id"]],
                     status="Active" if dev["instance_state"] == "Up" else "Offline",
