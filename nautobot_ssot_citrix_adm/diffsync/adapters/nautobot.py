@@ -1,17 +1,18 @@
 """Nautobot Adapter for Citrix ADM SSoT plugin."""
 
 from collections import defaultdict
-from django.db.models import ProtectedError
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
-from nautobot.dcim.models import Device as OrmDevice, Interface, Site
+from django.db.models import ProtectedError
+from nautobot.dcim.models import Device as OrmDevice
+from nautobot.dcim.models import Interface, Site
 from nautobot.extras.models import Job
 from nautobot.ipam.models import IPAddress
 from nautobot_ssot_citrix_adm.diffsync.models.nautobot import (
+    NautobotAddress,
     NautobotDatacenter,
     NautobotDevice,
     NautobotPort,
-    NautobotAddress,
 )
 
 
