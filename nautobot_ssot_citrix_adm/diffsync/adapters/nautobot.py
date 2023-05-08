@@ -53,7 +53,9 @@ class NautobotAdapter(DiffSync):
 
     def load_devices(self):
         """Load Devices from Nautobot into DiffSync models."""
-        for dev in OrmDevice.objects.filter(_custom_field_data__system_of_record="Citrix ADM"):
+        for dev in OrmDevice.objects.select_related("device_type", "site", "status").filter(
+            _custom_field_data__system_of_record="Citrix ADM"
+        ):
             self.job.log_info(message=f"Loading Device {dev.name} from Nautobot.")
             new_dev = self.device(
                 name=dev.name,
@@ -68,7 +70,9 @@ class NautobotAdapter(DiffSync):
 
     def load_ports(self):
         """Load Interfaces from Nautobot into DiffSync models."""
-        for intf in Interface.objects.filter(device___custom_field_data__system_of_record="Citrix ADM"):
+        for intf in Interface.objects.select_related("device", "status").filter(
+            device___custom_field_data__system_of_record="Citrix ADM"
+        ):
             try:
                 dev = self.get(self.device, intf.device.name)
                 new_intf = self.port(
