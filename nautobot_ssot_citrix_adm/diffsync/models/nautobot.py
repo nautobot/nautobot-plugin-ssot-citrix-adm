@@ -1,4 +1,5 @@
 """Nautobot DiffSync models for Citrix ADM SSoT."""
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import Device as NewDevice
 from nautobot.dcim.models import Region, Site, DeviceRole, DeviceType, Manufacturer, Interface, Platform
@@ -21,26 +22,35 @@ class NautobotDatacenter(Datacenter):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Site in Nautobot from NautobotDatacenter object."""
-        new_site = Site(
-            name=ids["name"],
-            status=Status.objects.get(name="Active"),
-            latitude=attrs["latitude"],
-            longitude=attrs["longitude"],
-        )
-        if ids.get("region"):
-            new_site.region, _ = Region.objects.get_or_create(name=ids["region"])
-        new_site.validated_save()
-        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+        try:
+            Site.objects.get(name=ids["name"])
+            diffsync.job.log_warning(message=f"Site {ids['name']} already exists so skipping creation.")
+            return None
+        except Site.DoesNotExist:
+            new_site = Site(
+                name=ids["name"],
+                status=Status.objects.get(name="Active"),
+                latitude=attrs["latitude"],
+                longitude=attrs["longitude"],
+            )
+            if ids.get("region"):
+                new_site.region, _ = Region.objects.get_or_create(name=ids["region"])
+            new_site.validated_save()
+            return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
         """Update Site in Nautobot from NautobotDatacenter object."""
-        site = Site.objects.get(id=self.uuid)
-        if "latitude" in attrs:
-            site.latitude = attrs["latitude"]
-        if "longitude" in attrs:
-            site.longitude = attrs["longitude"]
-        site.validated_save()
-        return super().update(attrs)
+        if settings.PLUGINS_CONFIG.get("nautobot_ssot_citrix_adm").get("update_sites"):
+            site = Site.objects.get(id=self.uuid)
+            if "latitude" in attrs:
+                site.latitude = attrs["latitude"]
+            if "longitude" in attrs:
+                site.longitude = attrs["longitude"]
+            site.validated_save()
+            return super().update(attrs)
+        else:
+            self.diffsync.job.log_warning(message=f"Update sites setting is disabled so skipping updating {self.name}.")
+            return None
 
 
 class NautobotDevice(Device):
