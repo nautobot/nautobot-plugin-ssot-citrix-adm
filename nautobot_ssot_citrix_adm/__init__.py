@@ -21,10 +21,10 @@ class NautobotSsotCitrixAdmConfig(PluginConfig):
     author = "Justin Drew"
     description = "Nautobot SSoT Citrix ADM."
     base_url = "ssot-citrix-adm"
-    required_settings = []
+    required_settings = ["base_url", "username", "password", "verify"]
     min_version = "1.5.0"
     max_version = "1.9999"
-    default_settings = {}
+    default_settings = {"update_sites": True}
     caching_config = {}
 
     def ready(self):
