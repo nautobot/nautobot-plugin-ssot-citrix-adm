@@ -65,7 +65,8 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             site=self.hq_site,
             status=self.status_active,
         )
-        core_router.custom_field_data["os_version"] = "1.2.3"
+        core_router._custom_field_data["os_version"] = "1.2.3"  # pylint: disable=protected-access
+        core_router._custom_field_data["system_of_record"] = "Citrix ADM"  # pylint: disable=protected-access
         core_router.validated_save()
         mgmt_intf = Interface.objects.create(name="Management", type="virtual", device=core_router)
         mgmt_intf.validated_save()
@@ -76,6 +77,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             assigned_object_type=ContentType.objects.get_for_model(Interface),
             status=self.status_active,
         )
+        mgmt_addr._custom_field_data["system_of_record"] = "Citrix ADM"  # pylint: disable=protected-access
         mgmt_addr.validated_save()
         mgmt_addr6 = IPAddress.objects.create(
             address="2001:db8:3333:4444:5555:6666:7777:8888/128",
@@ -83,6 +85,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             assigned_object_type=ContentType.objects.get_for_model(Interface),
             status=self.status_active,
         )
+        mgmt_addr6._custom_field_data["system_of_record"] = "Citrix ADM"  # pylint: disable=protected-access
         mgmt_addr6.validated_save()
 
         core_router.primary_ip4 = mgmt_addr
