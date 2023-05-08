@@ -6,7 +6,7 @@ from diffsync.exceptions import ObjectNotFound
 from netutils.ip import netmask_to_cidr
 from nautobot.dcim.models import Device, Interface
 from nautobot.extras.choices import CustomFieldTypeChoices
-from nautobot.extras.models import CustomField
+from nautobot.extras.models import CustomField, Job
 from nautobot.ipam.models import IPAddress
 from nautobot_ssot_citrix_adm.constants import DEVICETYPE_MAP
 from nautobot_ssot_citrix_adm.diffsync.models.citrix_adm import (
@@ -103,11 +103,11 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
 
     top_level = ["datacenter", "device", "address"]
 
-    def __init__(self, *args, job=None, sync=None, client: CitrixNitroClient, **kwargs):
+    def __init__(self, *args, job: Job, sync=None, client: CitrixNitroClient, **kwargs):
         """Initialize Citrix ADM.
 
         Args:
-            job (object, optional): Citrix ADM job. Defaults to None.
+            job (Job): Citrix ADM job.
             sync (object, optional): Citrix ADM DiffSync. Defaults to None.
             client (CitrixNitroClient): Citrix ADM API client connection object.
         """

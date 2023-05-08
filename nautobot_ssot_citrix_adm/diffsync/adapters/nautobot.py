@@ -5,6 +5,7 @@ from django.db.models import ProtectedError
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
 from nautobot.dcim.models import Device as OrmDevice, Interface, Site
+from nautobot.extras.models import Job
 from nautobot.ipam.models import IPAddress
 from nautobot_ssot_citrix_adm.diffsync.models.nautobot import (
     NautobotDatacenter,
@@ -24,11 +25,11 @@ class NautobotAdapter(DiffSync):
 
     top_level = ["datacenter", "device", "address"]
 
-    def __init__(self, *args, job=None, sync=None, **kwargs):
+    def __init__(self, *args, job: Job, sync=None, **kwargs):
         """Initialize Nautobot.
 
         Args:
-            job (object, optional): Nautobot job. Defaults to None.
+            job (Job): Nautobot job.
             sync (object, optional): Nautobot DiffSync. Defaults to None.
         """
         super().__init__(*args, **kwargs)
