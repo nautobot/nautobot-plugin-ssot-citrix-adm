@@ -100,14 +100,15 @@ class NautobotAdapter(DiffSync):
             )
             self.add(new_ip)
 
-    def sync_complete(self, source: DiffSync, *args, **kwargs):
+    def sync_complete(self, source: DiffSync, diff, *args, **kwargs):
         """Label and clean up function for DiffSync sync.
 
         Once the sync is complete, this function labels all imported objects and then
         deletes any objects from Nautobot that need to be deleted in a specific order.
 
         Args:
-            source (DiffSync): DiffSync
+            source: The DiffSync whose data was used to update this instance.
+            diff: The Diff calculated prior to the sync operation.
         """
         self.job.log_info(message="Sync is complete. Labelling imported objects from Citrix ADM.")
         source.label_imported_objects(target=self)
@@ -120,7 +121,7 @@ class NautobotAdapter(DiffSync):
                 except ProtectedError:
                     self.job.log_info(message=f"Deletion failed protected object: {nautobot_obj}")
             self.objects_to_delete[grouping] = []
-        return super().sync_complete(source, *args, **kwargs)
+        return super().sync_complete(source, diff, *args, **kwargs)
 
     def load(self):
         """Load data from Nautobot into DiffSync models."""

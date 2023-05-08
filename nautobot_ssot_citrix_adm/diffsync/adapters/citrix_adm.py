@@ -118,29 +118,33 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
         self.adm_site_map = {}
         self.adm_device_map = {}
 
-    def load_sites(self):
-        """Load sites from Citrix ADM into DiffSync models."""
+    def create_site_map(self):
+        """Create mapping of ADM Datacenters to information about the Datacenter."""
         sites = self.conn.get_sites()
         for site in sites:
-            if site.get("name") == "Default":
-                self.job.log_info("Skipping loading of Default datacenter.")
-                continue
-            try:
-                found_site = self.get(self.datacenter, {"name": site.get("name"), "region": site.get("region")})
-                if found_site:
-                    self.job.log_warning(message=f"Duplicate Site attempting to be loaded: {site}.")
-            except ObjectNotFound:
-                if self.job.kwargs.get("debug"):
-                    self.job.log_info(message=f"Attempting to load DC: {site['name']} {site}")
-                new_site = self.datacenter(
-                    name=site["name"],
-                    region=site["region"],
-                    latitude=site["latitude"][:9].rstrip("0") if site.get("latitude") else "",
-                    longitude=site["longitude"][:9].rstrip("0") if site.get("longitude") else "",
-                    uuid=None,
-                )
-                self.add(new_site)
-                self.adm_site_map[site["id"]] = site["name"]
+            self.adm_site_map[site["id"]] = site
+
+    def load_site(self, site_info: dict):
+        """Load sites from Citrix ADM into DiffSync models.
+
+        Args:
+            site_info (dict): Dictionary containing information about Datacenter to be imported.
+        """
+        try:
+            found_site = self.get(self.datacenter, {"name": site_info.get("name"), "region": site_info.get("region")})
+            if found_site:
+                self.job.log_warning(message=f"Duplicate Site attempting to be loaded: {site_info}.")
+        except ObjectNotFound:
+            if self.job.kwargs.get("debug"):
+                self.job.log_info(message=f"Attempting to load DC: {site_info['name']}")
+            new_site = self.datacenter(
+                name=site_info["name"],
+                region=site_info["region"],
+                latitude=site_info["latitude"][:9].rstrip("0") if site_info.get("latitude") else "",
+                longitude=site_info["longitude"][:9].rstrip("0") if site_info.get("longitude") else "",
+                uuid=None,
+            )
+            self.add(new_site)
 
     def load_devices(self):
         """Load devices from Citrix ADM into DiffSync models."""
@@ -154,11 +158,13 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
                 if found_dev:
                     self.job.log_warning(message=f"Duplicate Device attempting to be loaded: {dev}.")
             except ObjectNotFound:
+                site = self.adm_site_map[dev["datacenter_id"]]
+                self.load_site(site_info=site)
                 new_dev = self.device(
                     name=dev["hostname"],
                     model=DEVICETYPE_MAP[dev["type"]] if dev["type"] in DEVICETYPE_MAP else dev["type"],
                     serial=dev["serialnumber"],
-                    site=self.adm_site_map[dev["datacenter_id"]],
+                    site=site["name"],
                     status="Active" if dev["instance_state"] == "Up" else "Offline",
                     version=parse_version(dev["version"]),
                     uuid=None,
@@ -273,6 +279,6 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
 
     def load(self):
         """Load data from Citrix ADM into DiffSync models."""
-        self.load_sites()
+        self.create_site_map()
         self.load_devices()
         self.load_ports()

@@ -47,21 +47,26 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
         self.citrix_adm = CitrixAdmAdapter(job=self.job, sync=None, client=self.citrix_adm_client)
         self.citrix_adm.load()
 
-    def test_load_sites(self):
-        """Test Nautobot SSoT Citrix ADM load_sites() function."""
+    def test_load_site(self):
+        """Test Nautobot SSoT Citrix ADM load_site() function."""
         self.assertEqual(
-            {f"{site['name']}__{site['region']}" for site in SITE_FIXTURE_RECV if site.get("name") != "Default"},
+            {"ARIA__West", "Delta HQ__East"},
             {site.get_unique_id() for site in self.citrix_adm.get_all("datacenter")},
         )
-        self.job.log_info.assert_called_with(
-            message="Attempting to load DC: NTC Corporate HQ {'city': 'New York City', 'zipcode': '10018', 'type': '1', 'name': 'NTC Corporate HQ', 'region': 'North', 'country': 'USA', 'longitude': '-73.989429', 'id': '7d29e100-ae0c-4580-ba86-b72df0b6cfd8', 'latitude': '40.753146'}"
-        )
+        self.job.log_info.assert_called_with(message="Attempting to load DC: ARIA")
 
-    def test_load_sites_duplicate(self):
-        """Test Nautobot SSoT Citrix ADM load_sites() function with duplicate sites."""
-        self.citrix_adm.load_sites()
+    def test_load_site_duplicate(self):
+        """Test Nautobot SSoT Citrix ADM load_site() function with duplicate site."""
+        site_info = {
+            "name": "NTC Corporate HQ",
+            "region": "North",
+            "longitude": "-73.989429",
+            "id": "7d29e100-ae0c-4580-ba86-b72df0b6cfd8",
+            "latitude": "40.753146",
+        }
+        self.citrix_adm.load_site(site_info=site_info)
         self.job.log_warning.assert_called_with(
-            message="Duplicate Site attempting to be loaded: {'city': 'New York City', 'zipcode': '10018', 'type': '1', 'name': 'NTC Corporate HQ', 'region': 'North', 'country': 'USA', 'longitude': '-73.989429', 'id': '7d29e100-ae0c-4580-ba86-b72df0b6cfd8', 'latitude': '40.753146'}."
+            message="Duplicate Site attempting to be loaded: {'city': 'Atlanta', 'zipcode': '30009', 'type': '1', 'name': 'Delta HQ', 'region': 'East', 'country': 'USA', 'longitude': '-84.320000', 'id': '28aa2970-0160-4860-aca8-a85f89268803', 'latitude': '34.030000'}."
         )
 
     def test_load_devices(self):
@@ -82,9 +87,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
         """Test the Nautobot SSoT Citrix ADM load_devices() function with a device missing hostname."""
         self.citrix_adm_client.get_devices.return_value = [{"hostname": ""}]
         self.citrix_adm.load_devices()
-        self.job.log_warning.assert_called_once_with(
-            message="Device without hostname will not be loaded. {'hostname': ''}"
-        )
+        self.job.log_warning.assert_called_with(message="Device without hostname will not be loaded. {'hostname': ''}")
 
     def test_load_ports(self):
         """Test the Nautobot SSoT Citrix ADM load_ports() function."""
