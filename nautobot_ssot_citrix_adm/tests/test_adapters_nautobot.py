@@ -2,6 +2,7 @@
 import uuid
 from unittest.mock import MagicMock
 from django.contrib.contenttypes.models import ContentType
+from django.db.models import ProtectedError
 from diffsync.exceptions import ObjectNotFound
 from nautobot.dcim.models import (
     Device,
@@ -155,6 +156,21 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.assertTrue(self.nb_adapter.job.log_info.called)
         self.assertTrue(self.nb_adapter.job.log_info.call_count, 2)
         self.assertTrue(self.nb_adapter.job.log_info.call_args_list[0].startswith("Deleting"))
+
+    def test_sync_complete_protected_error(self):
+        """
+        Tests that ProtectedError exception is handled when deleting objects from Nautobot.
+        """
+        mock_site = MagicMock()
+        mock_site.delete.side_effect = ProtectedError(
+            msg="Cannot delete protected object.", protected_objects=mock_site
+        )
+        self.nb_adapter.label_imported_objects = MagicMock(id="test")
+        self.nb_adapter.objects_to_delete["sites"].append(mock_site)
+        self.nb_adapter.sync_complete(source=self.nb_adapter, diff=MagicMock())
+        self.nb_adapter.label_imported_objects.assert_called_once()
+        self.job.log_info.assert_called()
+        self.job.log_info.calls[1].starts_with("Deletion failed protected object")
 
     def test_load(self):
         """Test the load() function."""
