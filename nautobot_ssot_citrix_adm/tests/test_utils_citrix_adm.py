@@ -39,6 +39,12 @@ class TestCitrixAdmClient(TestCase):
         self.assertEqual(self.client.password, self.password)
         self.assertEqual(self.client.verify, self.verify)
 
+    def test_url_updated(self):
+        """Validate the URL is updated if a trailing slash is included in URL."""
+        self.base_url = "https://example.com/"
+        self.client = CitrixNitroClient(self.base_url, self.user, self.password, self.log, self.verify)
+        self.assertEqual(self.client.url, self.base_url.rstrip("/"))
+
     @patch.object(CitrixNitroClient, "request")
     def test_login(self, mock_request):
         """Validate functionality of the login() method success."""
