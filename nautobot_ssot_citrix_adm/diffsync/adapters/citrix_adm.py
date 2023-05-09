@@ -57,7 +57,7 @@ class LabelMixin:
             nautobot_object.custom_field_data["system_of_record"] = "Citrix ADM"
             nautobot_object.validated_save()
 
-        today = datetime.now().today()
+        today = datetime.today().date().isoformat()
         model_instance, name, device, port, address = None, None, None, None, None
         try:
             model_instance = self.get(modelname, unique_id)
