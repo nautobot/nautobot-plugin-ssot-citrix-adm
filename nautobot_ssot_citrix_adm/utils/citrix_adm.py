@@ -20,6 +20,8 @@ class CitrixNitroClient:
             verify (bool, optional): Whether to validate SSL certificate on Citrix ADM or not. Defaults to True.
             logger (Job): Job logger to notify users of progress.
         """
+        if base_url.endswith("/"):
+            base_url = base_url.rstrip("/")
         self.url = base_url
         self.username = user
         self.password = password
