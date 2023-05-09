@@ -57,7 +57,7 @@ class NautobotDevice(Device):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Device in Nautobot from NautobotDevice object."""
-        lb_role, _ = DeviceRole.objects.get_or_create(name="Load-Balancer")
+        lb_role, _ = DeviceRole.objects.get_or_create(name=attrs["role"])
         lb_dt, _ = DeviceType.objects.get_or_create(
             model=attrs["model"], manufacturer=Manufacturer.objects.get(name="Citrix")
         )
@@ -90,7 +90,7 @@ class NautobotDevice(Device):
         if "status" in attrs:
             device.status = Status.objects.get(name=attrs["status"])
         if "role" in attrs:
-            device.device_role, _ = DeviceRole.objects.get_or_create(name="Load-Balancer")
+            device.device_role = DeviceRole.objects.get_or_create(attrs["role"])[0]
         if "serial" in attrs:
             device.serial = attrs["serial"]
         if "site" in attrs:
