@@ -103,18 +103,20 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
 
     top_level = ["datacenter", "device", "address"]
 
-    def __init__(self, *args, job: Job, sync=None, client: CitrixNitroClient, **kwargs):
+    def __init__(self, *args, job: Job, sync=None, client: CitrixNitroClient, tenant: str = "", **kwargs):
         """Initialize Citrix ADM.
 
         Args:
             job (Job): Citrix ADM job.
             sync (object, optional): Citrix ADM DiffSync. Defaults to None.
             client (CitrixNitroClient): Citrix ADM API client connection object.
+            tenant (str): Name of Tenant to associate Devices and IP Addresses with.
         """
         super().__init__(*args, **kwargs)
         self.job = job
         self.sync = sync
         self.conn = client
+        self.tenant = tenant
         self.adm_site_map = {}
         self.adm_device_map = {}
 
@@ -166,6 +168,7 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
                     serial=dev["serialnumber"],
                     site=site["name"],
                     status="Active" if dev["instance_state"] == "Up" else "Offline",
+                    tenant=self.tenant,
                     version=parse_version(dev["version"]),
                     uuid=None,
                 )
@@ -273,6 +276,7 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
             device=device,
             port=port,
             primary=primary,
+            tenant=self.tenant,
             uuid=None,
         )
         self.add(new_addr)

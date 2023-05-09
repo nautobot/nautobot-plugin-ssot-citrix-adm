@@ -34,6 +34,7 @@ class Device(DiffSyncModel):
         "serial",
         "site",
         "status",
+        "tenant",
         "version",
     )
     _children = {"port": "ports"}
@@ -43,6 +44,7 @@ class Device(DiffSyncModel):
     serial: Optional[str]
     site: Optional[str]
     status: Optional[str]
+    tenant: Optional[str]
     version: Optional[str]
     ports: Optional[List["Port"]] = []
 
@@ -70,12 +72,13 @@ class Address(DiffSyncModel):
 
     _modelname = "address"
     _identifiers = ("address", "device", "port")
-    _attributes = ("primary",)
+    _attributes = ("primary", "tenant")
     _children = {}
 
     address: str
     device: str
     port: str
     primary: bool
+    tenant: Optional[str]
 
     uuid: Optional[UUID]
