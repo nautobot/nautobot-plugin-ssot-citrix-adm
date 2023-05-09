@@ -34,6 +34,7 @@ class TestCitrixAdmClient(TestCase):
         self.client = CitrixNitroClient(self.base_url, self.user, self.password, self.log, self.verify)
 
     def test_init(self):
+        """Validate the class initializer works as expected."""
         self.assertEqual(self.client.url, self.base_url)
         self.assertEqual(self.client.username, self.user)
         self.assertEqual(self.client.password, self.password)
