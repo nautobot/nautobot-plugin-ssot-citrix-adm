@@ -90,7 +90,7 @@ class NautobotDevice(Device):
         if "status" in attrs:
             device.status = Status.objects.get(name=attrs["status"])
         if "role" in attrs:
-            device.device_role = DeviceRole.objects.get_or_create(attrs["role"])[0]
+            device.device_role = DeviceRole.objects.get_or_create(name=attrs["role"])[0]
         if "serial" in attrs:
             device.serial = attrs["serial"]
         if "site" in attrs:
