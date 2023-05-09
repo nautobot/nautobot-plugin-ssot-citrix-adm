@@ -63,6 +63,7 @@ class NautobotAdapter(DiffSync):
                 serial=dev.serial,
                 site=dev.site.name,
                 status=dev.status.name,
+                tenant=dev.tenant.name if dev.tenant else "",
                 version=dev._custom_field_data["os_version"],
                 uuid=dev.id,
             )
@@ -101,6 +102,7 @@ class NautobotAdapter(DiffSync):
                 device=addr.assigned_object.device.name if addr.assigned_object else "",
                 port=addr.assigned_object.name if addr.assigned_object else "",
                 primary=primary,
+                tenant=addr.tenant.name if addr.tenant else "",
                 uuid=addr.id,
             )
             self.add(new_ip)
