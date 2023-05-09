@@ -1,5 +1,6 @@
 """Nautobot SSoT Citrix ADM Adapter for Citrix ADM SSoT plugin."""
 from datetime import datetime
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
@@ -15,7 +16,9 @@ from nautobot_ssot_citrix_adm.diffsync.models.citrix_adm import (
     CitrixAdmPort,
     CitrixAdmAddress,
 )
-from nautobot_ssot_citrix_adm.utils.citrix_adm import parse_version, CitrixNitroClient
+from nautobot_ssot_citrix_adm.utils.citrix_adm import parse_hostname_for_role, parse_version, CitrixNitroClient
+
+PLUGIN_CFG = settings.PLUGINS_CONFIG["nautobot_ssot_citrix_adm"]
 
 
 class LabelMixin:
@@ -162,9 +165,13 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
             except ObjectNotFound:
                 site = self.adm_site_map[dev["datacenter_id"]]
                 self.load_site(site_info=site)
+                role = parse_hostname_for_role(
+                    hostname_map=PLUGIN_CFG.get("hostname_mapping"), device_hostname=dev["hostname"]
+                )
                 new_dev = self.device(
                     name=dev["hostname"],
                     model=DEVICETYPE_MAP[dev["type"]] if dev["type"] in DEVICETYPE_MAP else dev["type"],
+                    role=role,
                     serial=dev["serialnumber"],
                     site=site["name"],
                     status="Active" if dev["instance_state"] == "Up" else "Offline",

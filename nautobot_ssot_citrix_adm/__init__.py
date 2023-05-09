@@ -24,7 +24,7 @@ class NautobotSsotCitrixAdmConfig(PluginConfig):
     required_settings = ["base_url", "username", "password", "verify"]
     min_version = "1.5.0"
     max_version = "1.9999"
-    default_settings = {"update_sites": True}
+    default_settings = {"update_sites": True, "hostname_mapping": []}
     caching_config = {}
 
     def ready(self):

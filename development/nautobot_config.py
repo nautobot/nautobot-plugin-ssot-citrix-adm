@@ -147,6 +147,7 @@ PLUGINS_CONFIG = {
         "verify": is_truthy(os.getenv("NAUTOBOT_SSOT_CITRIX_VERIFY", True)),
         "update_sites": is_truthy(os.getenv("NAUTOBOT_SSOT_CITRIX_ADM_UPDATE_SITES", True)),
         "tenant": os.getenv("NAUTOBOT_SSOT_CITRIX_TENANT", ""),
+        "hostname_mapping": [],
     },
     "nautobot_device_lifecycle_mgmt": {
         "barchart_bar_width": float(os.environ.get("BARCHART_BAR_WIDTH", 0.1)),

@@ -1,6 +1,6 @@
 """Utility functions for working with Citrix ADM."""
 import re
-from typing import Union, Optional
+from typing import List, Union, Optional, Tuple
 import requests
 
 
@@ -156,3 +156,22 @@ def parse_version(version: str):
     if match:
         result = match.group("version")
     return result
+
+
+def parse_hostname_for_role(hostname_map: List[Tuple[str, str]], device_hostname: str):
+    """Parse device hostname from hostname_map to get Device Role.
+
+    Args:
+        hostname_map (List[Tuple[str, str]]): List of tuples containing regex to compare with hostname and associated DeviceRole name.
+        device_hostname (str): Hostname of Device to determine role of.
+
+    Returns:
+        str: Name of DeviceRole. Defaults to Load-Balancer.
+    """
+    device_role = "Load-Balancer"
+    if hostname_map:
+        for entry in hostname_map:
+            match = re.match(pattern=entry[0], string=device_hostname)
+            if match:
+                device_role = entry[1]
+    return device_role

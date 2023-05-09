@@ -12,7 +12,7 @@ from nautobot_ssot_citrix_adm.tests.fixtures import (
     PORT_FIXTURE_SENT,
     PORT_FIXTURE_RECV,
 )
-from nautobot_ssot_citrix_adm.utils.citrix_adm import parse_version, CitrixNitroClient
+from nautobot_ssot_citrix_adm.utils.citrix_adm import parse_hostname_for_role, parse_version, CitrixNitroClient
 
 LOGGER = logging.getLogger(__name__)
 
@@ -165,6 +165,20 @@ class TestCitrixAdmClient(TestCase):
         expected = self.client.get_ports()
         self.log.log_failure.assert_called_once_with(message="Error getting ports from Citrix ADM.")
         self.assertEqual(expected, {})
+
+    def test_parse_hostname_for_role_success(self):
+        """Validate the functionality of the parse_hostname_for_role method success."""
+        hostname_mapping = [(".*INT.*", "Internal"), (".*DMZ.*", "DMZ")]
+        hostname = "INT-LB"
+        result = parse_hostname_for_role(hostname_map=hostname_mapping, device_hostname=hostname)
+        self.assertEqual(result, "Internal")
+
+    def test_parse_hostname_for_role_failure(self):
+        """Validate the functionality of the parse_hostname_for_role method failure."""
+        hostname_mapping = []
+        hostname = "Test LB"
+        result = parse_hostname_for_role(hostname_map=hostname_mapping, device_hostname=hostname)
+        self.assertEqual(result, "Load-Balancer")
 
     def test_parse_version(self):
         """Validate functionality of the parse_version function."""

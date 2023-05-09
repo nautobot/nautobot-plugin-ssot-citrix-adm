@@ -31,6 +31,7 @@ class Device(DiffSyncModel):
     _identifiers = ("name",)
     _attributes = (
         "model",
+        "role",
         "serial",
         "site",
         "status",
@@ -41,6 +42,7 @@ class Device(DiffSyncModel):
 
     name: str
     model: Optional[str]
+    role: str
     serial: Optional[str]
     site: Optional[str]
     status: Optional[str]
