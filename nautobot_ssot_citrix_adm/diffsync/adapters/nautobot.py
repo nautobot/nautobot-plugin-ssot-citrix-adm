@@ -121,7 +121,7 @@ class NautobotAdapter(DiffSync):
         self.job.log_info(message="Sync is complete. Labelling imported objects from Citrix ADM.")
         source.label_imported_objects(target=self)
 
-        for grouping in ["sites"]:
+        for grouping in ["addresses", "ports", "devices"]:
             for nautobot_obj in self.objects_to_delete[grouping]:
                 try:
                     self.job.log_info(message=f"Deleting {nautobot_obj}.")
