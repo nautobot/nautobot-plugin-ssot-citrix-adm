@@ -173,12 +173,10 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         """
         Tests that ProtectedError exception is handled when deleting objects from Nautobot.
         """
-        mock_site = MagicMock()
-        mock_site.delete.side_effect = ProtectedError(
-            msg="Cannot delete protected object.", protected_objects=mock_site
-        )
+        mock_dev = MagicMock()
+        mock_dev.delete.side_effect = ProtectedError(msg="Cannot delete protected object.", protected_objects=mock_dev)
         self.nb_adapter.label_imported_objects = MagicMock(id="test")
-        self.nb_adapter.objects_to_delete["sites"].append(mock_site)
+        self.nb_adapter.objects_to_delete["devices"].append(mock_dev)
         self.nb_adapter.sync_complete(source=self.nb_adapter, diff=MagicMock())
         self.nb_adapter.label_imported_objects.assert_called_once()
         self.job.log_info.assert_called()
