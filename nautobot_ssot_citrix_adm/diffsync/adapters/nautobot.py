@@ -64,15 +64,15 @@ class NautobotAdapter(DiffSync):
             _custom_field_data__system_of_record="Citrix ADM"
         ):
             self.job.log_info(message=f"Loading Device {dev.name} from Nautobot.")
+            version = dev._custom_field_data["os_version"]
             if LIFECYCLE_MGMT:
                 try:
                     software_relation = Relationship.objects.get(slug="device_soft")
                     relationship = RelationshipAssociation.objects.get(relationship=software_relation, destination_id=dev.id)
                     version = relationship.source.version
                 except RelationshipAssociation.DoesNotExist:
-                    pass
-            else:
-                version = dev._custom_field_data["os_version"]
+                    self.job.log_info(message=f"Unable to find DLC Software version for {dev.name}.")     
+                    version = ""
             new_dev = self.device(
                 name=dev.name,
                 model=dev.device_type.model,
