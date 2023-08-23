@@ -16,7 +16,7 @@ from nautobot_ssot_citrix_adm.diffsync.models.nautobot import (
 )
 
 try:
-    from nautobot_device_lifecycle_mgmt import SoftwareLCM # noqa: F401
+    import nautobot_device_lifecycle_mgmt # noqa: F401
 
     LIFECYCLE_MGMT = True
 except ImportError:
