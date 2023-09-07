@@ -53,6 +53,9 @@ class CitrixNitroClient:
         objecttype = "logout"
         logout = {"logout": {"username": self.username, "password": self.password}}
         payload = f"object={logout}"
+        self.headers.pop("_MPS_API_PROXY_MANAGED_INSTANCE_IP", None)
+        self.headers.pop("_MPS_API_PROXY_MANAGED_INSTANCE_USERNAME", None)
+        self.headers.pop("_MPS_API_PROXY_MANAGED_INSTANCE_PASSWORD", None)
         self.request(method="POST", endpoint=url, objecttype=objecttype, data=payload)
 
     def request(  # pylint: disable=too-many-arguments
@@ -102,7 +105,7 @@ class CitrixNitroClient:
             _result.raise_for_status()
             return _result.json()
         except requests.exceptions.HTTPError as err:
-            self.log.log_failure(message=f"Failure with request: {err}")
+            self.log.log_warning(message=f"Failure with request: {err}")
             return {}
 
     def get_sites(self):
@@ -131,16 +134,34 @@ class CitrixNitroClient:
         self.log.log_failure(message="Error getting devices from Citrix ADM.")
         return {}
 
-    def get_ports(self):
-        """Gather all ports registered to devices in MAS/ADM instance."""
-        self.log.log_info(message="Getting ports from Citrix ADM.")
+    def get_nsip6(self, adc):
+        """Gather all nsip6 addresses from ADC instance using ADM as proxy."""
         endpoint = "config"
-        objecttype = "ns_network_interface"
-        params = {"attrs": "devicename,ns_ip_address,state,hostname,description"}
+        objecttype = "nsip6"
+        params = {}
+        self.headers["_MPS_API_PROXY_MANAGED_INSTANCE_USERNAME"] = self.username
+        self.headers["_MPS_API_PROXY_MANAGED_INSTANCE_PASSWORD"] = self.password
+        self.headers["_MPS_API_PROXY_MANAGED_INSTANCE_IP"] = adc["ip_address"]
         result = self.request("GET", endpoint, objecttype, params=params)
         if result:
             return result[objecttype]
-        self.log.log_failure(message="Error getting ports from Citrix ADM.")
+        self.log.log_warning(message=f"Error getting nsip6 from {adc['hostname']}")
+
+        return {}
+
+    def get_vlan_bindings(self, adc):
+        """Gather all interface vlan and nsip bindings from ADC instance using ADM as proxy."""
+        endpoint = "config"
+        objecttype = "vlan_binding"
+        params = {"bulkbindings": "yes"}
+        self.headers["_MPS_API_PROXY_MANAGED_INSTANCE_USERNAME"] = self.username
+        self.headers["_MPS_API_PROXY_MANAGED_INSTANCE_PASSWORD"] = self.password
+        self.headers["_MPS_API_PROXY_MANAGED_INSTANCE_IP"] = adc["ip_address"]
+        result = self.request("GET", endpoint, objecttype, params=params)
+        if result:
+            return result[objecttype]
+        self.log.log_warning(message=f"Error getting vlan bindings from {adc['hostname']}")
+
         return {}
 
 

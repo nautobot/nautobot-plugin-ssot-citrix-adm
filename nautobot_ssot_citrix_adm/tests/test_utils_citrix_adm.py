@@ -11,6 +11,10 @@ from nautobot_ssot_citrix_adm.tests.fixtures import (
     DEVICE_FIXTURE_RECV,
     PORT_FIXTURE_SENT,
     PORT_FIXTURE_RECV,
+    NSIP6_FIXTURE_SENT,
+    NSIP6_FIXTURE_RECV,
+    VLAN_FIXTURE_SENT,
+    VLAN_FIXTURE_RECV,
 )
 from nautobot_ssot_citrix_adm.utils.citrix_adm import parse_hostname_for_role, parse_version, CitrixNitroClient
 
@@ -119,7 +123,7 @@ class TestCitrixAdmClient(TestCase):
 
         self.client.request("POST", endpoint, objecttype, objectname, params, data)
         mock_response.raise_for_status.assert_called_once()
-        self.log.log_failure.assert_called_once_with(message="Failure with request: ")
+        self.log.log_warning.assert_called_once_with(message="Failure with request: ")
 
     @patch.object(CitrixNitroClient, "request")
     def test_get_sites_success(self, mock_request):
@@ -152,19 +156,40 @@ class TestCitrixAdmClient(TestCase):
         self.assertEqual(expected, {})
 
     @patch.object(CitrixNitroClient, "request")
-    def test_get_ports_success(self, mock_request):
-        """Validate functionality of the get_ports() method success."""
-        mock_request.return_value = PORT_FIXTURE_SENT
-        expected = self.client.get_ports()
-        self.assertEqual(PORT_FIXTURE_RECV, expected)
+    def test_get_nsip6_success(self, mock_request):
+        """Validate functionality of the get_nsip6() method success."""
+        adc = {"hostname": "test", "ip_address": ""}
+        mock_request.side_effect = NSIP6_FIXTURE_SENT
+        for expected in NSIP6_FIXTURE_RECV:
+            actual = self.client.get_nsip6(adc)
+            self.assertEqual(actual, expected)
 
     @patch.object(CitrixNitroClient, "request")
-    def test_get_ports_failure(self, mock_request):
-        """Validate functionality of the get_ports() method failure."""
+    def test_get_nsip6_failure(self, mock_request):
+        """Validate functionality of the get_nsip6() method failure."""
+        adc = {"hostname": "test", "ip_address": ""}
         mock_request.return_value = {}
-        expected = self.client.get_ports()
-        self.log.log_failure.assert_called_once_with(message="Error getting ports from Citrix ADM.")
-        self.assertEqual(expected, {})
+        actual = self.client.get_nsip6(adc)
+        self.log.log_warning.assert_called_once_with(message="Error getting nsip6 from test")
+        self.assertEqual(actual, {})
+
+    @patch.object(CitrixNitroClient, "request")
+    def test_get_vlan_bindings_success(self, mock_request):
+        """Validate functionality of the get_nsip6() method success."""
+        adc = {"hostname": "test", "ip_address": ""}
+        mock_request.side_effect = VLAN_FIXTURE_SENT
+        for expected in VLAN_FIXTURE_RECV:
+            actual = self.client.get_vlan_bindings(adc)
+            self.assertEqual(actual, expected)
+
+    @patch.object(CitrixNitroClient, "request")
+    def test_get_vlan_bindings_failure(self, mock_request):
+        """Validate functionality of the get_nsip6() method failure."""
+        adc = {"hostname": "test", "ip_address": ""}
+        mock_request.return_value = {}
+        actual = self.client.get_vlan_bindings(adc)
+        self.log.log_warning.assert_called_once_with(message="Error getting vlan bindings from test")
+        self.assertEqual(actual, {})
 
     def test_parse_hostname_for_role_success(self):
         """Validate the functionality of the parse_hostname_for_role method success."""

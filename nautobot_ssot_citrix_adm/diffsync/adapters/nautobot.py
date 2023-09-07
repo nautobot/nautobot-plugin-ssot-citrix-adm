@@ -16,7 +16,7 @@ from nautobot_ssot_citrix_adm.diffsync.models.nautobot import (
 )
 
 try:
-    import nautobot_device_lifecycle_mgmt # noqa: F401
+    import nautobot_device_lifecycle_mgmt  # noqa: F401
 
     LIFECYCLE_MGMT = True
 except ImportError:
@@ -68,10 +68,12 @@ class NautobotAdapter(DiffSync):
             if LIFECYCLE_MGMT:
                 try:
                     software_relation = Relationship.objects.get(slug="device_soft")
-                    relationship = RelationshipAssociation.objects.get(relationship=software_relation, destination_id=dev.id)
+                    relationship = RelationshipAssociation.objects.get(
+                        relationship=software_relation, destination_id=dev.id
+                    )
                     version = relationship.source.version
                 except RelationshipAssociation.DoesNotExist:
-                    self.job.log_info(message=f"Unable to find DLC Software version for {dev.name}.")     
+                    self.job.log_info(message=f"Unable to find DLC Software version for {dev.name}.")
                     version = ""
             new_dev = self.device(
                 name=dev.name,
