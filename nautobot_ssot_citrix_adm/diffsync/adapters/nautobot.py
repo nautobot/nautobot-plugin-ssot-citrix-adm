@@ -6,7 +6,7 @@ from diffsync.exceptions import ObjectNotFound
 from django.db.models import ProtectedError
 from nautobot.dcim.models import Device as OrmDevice
 from nautobot.dcim.models import Interface, Site
-from nautobot.extras.models import Job
+from nautobot.extras.models import Job, Relationship, RelationshipAssociation
 from nautobot.ipam.models import IPAddress
 from nautobot_ssot_citrix_adm.diffsync.models.nautobot import (
     NautobotAddress,
@@ -14,6 +14,13 @@ from nautobot_ssot_citrix_adm.diffsync.models.nautobot import (
     NautobotDevice,
     NautobotPort,
 )
+
+try:
+    import nautobot_device_lifecycle_mgmt  # noqa: F401
+
+    LIFECYCLE_MGMT = True
+except ImportError:
+    LIFECYCLE_MGMT = False
 
 
 class NautobotAdapter(DiffSync):
@@ -57,6 +64,17 @@ class NautobotAdapter(DiffSync):
             _custom_field_data__system_of_record="Citrix ADM"
         ):
             self.job.log_info(message=f"Loading Device {dev.name} from Nautobot.")
+            version = dev._custom_field_data["os_version"]
+            if LIFECYCLE_MGMT:
+                try:
+                    software_relation = Relationship.objects.get(slug="device_soft")
+                    relationship = RelationshipAssociation.objects.get(
+                        relationship=software_relation, destination_id=dev.id
+                    )
+                    version = relationship.source.version
+                except RelationshipAssociation.DoesNotExist:
+                    self.job.log_info(message=f"Unable to find DLC Software version for {dev.name}.")
+                    version = ""
             new_dev = self.device(
                 name=dev.name,
                 model=dev.device_type.model,
@@ -65,7 +83,7 @@ class NautobotAdapter(DiffSync):
                 site=dev.site.name,
                 status=dev.status.name,
                 tenant=dev.tenant.name if dev.tenant else "",
-                version=dev._custom_field_data["os_version"],
+                version=version,
                 uuid=dev.id,
             )
             self.add(new_dev)

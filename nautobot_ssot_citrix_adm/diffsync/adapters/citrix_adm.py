@@ -161,7 +161,7 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
             try:
                 found_dev = self.get(self.device, dev["hostname"])
                 if found_dev:
-                    self.job.log_warning(message=f"Duplicate Device attempting to be loaded: {dev}.")
+                    self.job.log_warning(message=f"Duplicate Device attempting to be loaded: {dev['hostname']}")
             except ObjectNotFound:
                 site = self.adm_site_map[dev["datacenter_id"]]
                 self.load_site(site_info=site)
@@ -196,54 +196,83 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
                         except ObjectNotFound:
                             self.load_address(address=address, device=dev["hostname"], port="Management", primary=True)
 
+    def create_port_map(self):
+        """Create a port/vlan/ip map for each ADC instance."""
+        self.job.log_info(message=f"Retrieving nsip and port bindings from ADC instances.")
+        for _, adc in self.adm_device_map.items():
+            nsip6s = self.conn.get_nsip6(adc)
+            vlan_bindings = self.conn.get_vlan_bindings(adc)
+            ports = []
+
+            try:
+                for binding in vlan_bindings:
+                    if binding.get("vlan_nsip_binding"):
+                        for nsip in binding["vlan_nsip_binding"]:
+                            vlan = nsip["id"]
+                            ipaddress = nsip["ipaddress"]
+                            netmask = netmask_to_cidr(nsip["netmask"])
+                            port = binding["vlan_interface_binding"][0]["ifnum"]
+                            record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
+                            ports.append(record)
+                    if binding.get("vlan_nsip6_binding"):
+                        for nsip6 in binding["vlan_nsip6_binding"]:
+                            vlan = nsip6["id"]
+                            ipaddress, netmask = nsip6["ipaddress"].split("/")
+                            port = binding["vlan_interface_binding"][0]["ifnum"]
+                            record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
+                            ports.append(record)
+            except KeyError:
+                self.job.log_warning(message=f"Unable to load bindings for {adc['hostname']}.")
+
+            try:
+                for nsip6 in nsip6s:
+                    if nsip6["scope"] == "link-local":
+                        vlan = nsip6["vlan"]
+                        ipaddress, netmask = nsip6["ipv6address"].split("/")
+                        port = "L0/1"
+                        record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
+                        ports.append(record)
+            except KeyError:
+                self.job.log_warning(message=f"Unable to load nsip6 for {adc['hostname']}.")
+
+            self.adm_device_map[adc["hostname"]]["ports"] = ports
+
     def load_ports(self):
         """Load ports from Citrix ADM into DiffSync models."""
-        ports = self.conn.get_ports()
-        for port in ports:
-            try:
-                self.get(self.port, {"name": port["devicename"], "device": port["hostname"]})
-                self.job.log_warning(
-                    message=f"Duplicate port {port['devicename']} attempting to be loaded for {port['hostname']}."
-                )
-                continue
-            except ObjectNotFound:
+        for _, adc in self.adm_device_map.items():
+            for port in adc["ports"]:
                 try:
-                    dev = self.get(self.device, port["hostname"])
+                    self.get(self.port, {"name": port["port"], "device": adc["hostname"]})
+                except ObjectNotFound:
+                    dev = self.get(self.device, adc["hostname"])
                     new_port = self.add_port(
-                        dev_name=port["hostname"],
-                        port_name=port["devicename"],
-                        port_status=port["state"],
-                        description=port["description"],
+                        dev_name=adc["hostname"],
+                        port_name=port["port"],
+                        port_status="ENABLED",
+                        description="",
                     )
                     dev.add_child(new_port)
-                    if port.get("ns_ip_address"):
-                        netmask = netmask_to_cidr(self.adm_device_map[port["hostname"]]["netmask"])
-                        try:
-                            # check if address already loaded on Management port
-                            mgmt_addr = self.get(
-                                self.address,
-                                {
-                                    "address": f"{port['ns_ip_address']}/{netmask}",
-                                    "device": port["hostname"],
-                                    "port": "Management",
-                                },
-                            )
-                            self.job.log_info(
-                                message=f"Management address {port['ns_ip_address']} found on {port['devicename']} so updating DiffSync models to use this port."
-                            )
-                            mgmt_addr.port = port["devicename"]
-                            mgmt_port = self.get(self.port, {"name": "Management", "device": port["hostname"]})
-                            mgmt_port.name = port["devicename"]
-                        except ObjectNotFound:
-                            self.load_address(
-                                address=f"{port['ns_ip_address']}/{netmask}",
-                                device=port["hostname"],
-                                port=port["devicename"],
-                            )
-                except ObjectNotFound:
-                    self.job.log_warning(
-                        message=f"Unable to find device {port['hostname']} so skipping loading of port {port['devicename']}."
-                    )
+
+    def load_addresses(self):
+        """Load addresses from Citrix ADC instances into Diffsync models."""
+        for _, adc in self.adm_device_map.items():
+            for port in adc["ports"]:
+                if port.get("ipaddress"):
+                    try:
+                        self.get(
+                            self.address,
+                            {
+                                "address": f"{port['ipaddress']}/{port['netmask']}",
+                                "device": adc["hostname"],
+                                "port": port["port"],
+                            },
+                        )
+                    except ObjectNotFound:
+                        self.load_address(
+                            address=f"{port['ipaddress']}/{port['netmask']}",
+                            device=adc["hostname"],
+                            port=port["port"],
+                        )
 
     def add_port(
         self, dev_name: str, port_name: str = "Management", port_status: str = "ENABLED", description: str = ""
@@ -292,4 +321,6 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
         """Load data from Citrix ADM into DiffSync models."""
         self.create_site_map()
         self.load_devices()
+        self.create_port_map()
         self.load_ports()
+        self.load_addresses()
