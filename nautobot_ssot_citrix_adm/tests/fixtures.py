@@ -14,3 +14,7 @@ DEVICE_FIXTURE_SENT = load_json("./nautobot_ssot_citrix_adm/tests/fixtures/get_d
 DEVICE_FIXTURE_RECV = load_json("./nautobot_ssot_citrix_adm/tests/fixtures/get_devices_recv.json")
 PORT_FIXTURE_SENT = load_json("./nautobot_ssot_citrix_adm/tests/fixtures/get_ports_sent.json")
 PORT_FIXTURE_RECV = load_json("./nautobot_ssot_citrix_adm/tests/fixtures/get_ports_recv.json")
+VLAN_FIXTURE_SENT = load_json("./nautobot_ssot_citrix_adm/tests/fixtures/get_vlan_bindings_sent.json")
+VLAN_FIXTURE_RECV = load_json("./nautobot_ssot_citrix_adm/tests/fixtures/get_vlan_bindings_recv.json")
+NSIP6_FIXTURE_SENT = load_json("./nautobot_ssot_citrix_adm/tests/fixtures/get_nsip6_sent.json")
+NSIP6_FIXTURE_RECV = load_json("./nautobot_ssot_citrix_adm/tests/fixtures/get_nsip6_recv.json")
