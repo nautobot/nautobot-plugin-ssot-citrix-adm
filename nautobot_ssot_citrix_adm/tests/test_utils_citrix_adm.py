@@ -205,20 +205,6 @@ class TestCitrixAdmClient(TestCase):
         result = parse_hostname_for_role(hostname_map=hostname_mapping, device_hostname=hostname)
         self.assertEqual(result, "Load-Balancer")
 
-    def test_parse_hostname_for_role_success(self):
-        """Validate the functionality of the parse_hostname_for_role method success."""
-        hostname_mapping = [(".*INT.*", "Internal"), (".*DMZ.*", "DMZ")]
-        hostname = "INT-LB"
-        result = parse_hostname_for_role(hostname_map=hostname_mapping, device_hostname=hostname)
-        self.assertEqual(result, "Internal")
-
-    def test_parse_hostname_for_role_failure(self):
-        """Validate the functionality of the parse_hostname_for_role method failure."""
-        hostname_mapping = []
-        hostname = "Test LB"
-        result = parse_hostname_for_role(hostname_map=hostname_mapping, device_hostname=hostname)
-        self.assertEqual(result, "Load-Balancer")
-
     def test_parse_version(self):
         """Validate functionality of the parse_version function."""
         version = "NetScaler NS13.1: Build 37.38.nc, Date: Nov 23 2022, 04:42:36   (64-bit)"
