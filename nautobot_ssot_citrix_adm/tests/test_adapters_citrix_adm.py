@@ -50,39 +50,40 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
             name=self.job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
         )
         self.citrix_adm = CitrixAdmAdapter(job=self.job, sync=None, client=self.citrix_adm_client)
-        self.citrix_adm.load()
 
     def test_load_site(self):
         """Test Nautobot SSoT Citrix ADM load_site() function."""
+        self.citrix_adm.load_site(site_info=SITE_FIXTURE_RECV[2])
         self.assertEqual(
-            {"ARIA__West", "Delta HQ__East"},
+            {"ARIA__West"},
             {site.get_unique_id() for site in self.citrix_adm.get_all("datacenter")},
         )
         self.job.log_info.assert_called_with(message="Attempting to load DC: ARIA")
 
     def test_load_site_duplicate(self):
         """Test Nautobot SSoT Citrix ADM load_site() function with duplicate site."""
-        site_info = {
-            "name": "NTC Corporate HQ",
-            "region": "North",
-            "longitude": "-73.989429",
-            "id": "7d29e100-ae0c-4580-ba86-b72df0b6cfd8",
-            "latitude": "40.753146",
-        }
+        site_info = SITE_FIXTURE_RECV[4]
+        self.citrix_adm.load_site(site_info=site_info)
         self.citrix_adm.load_site(site_info=site_info)
         self.job.log_warning.assert_called_with(
-            message="Duplicate Site attempting to be loaded: {'city': 'Atlanta', 'zipcode': '30009', 'type': '1', 'name': 'Delta HQ', 'region': 'East', 'country': 'USA', 'longitude': '-84.320000', 'id': '28aa2970-0160-4860-aca8-a85f89268803', 'latitude': '34.030000'}."
+            message="Duplicate Site attempting to be loaded: {'city': 'New York City', 'zipcode': '10018', 'type': '1', 'name': 'NTC Corporate HQ', 'region': 'North', 'country': 'USA', 'longitude': '-73.989429', 'id': '7d29e100-ae0c-4580-ba86-b72df0b6cfd8', 'latitude': '40.753146'}."
         )
 
     def test_load_devices(self):
         """Test the Nautobot SSoT Citrix ADM load_devices() function."""
+        self.citrix_adm.adm_site_map[DEVICE_FIXTURE_RECV[0]["datacenter_id"]] = SITE_FIXTURE_RECV[1]
+        self.citrix_adm_client.get_devices.return_value = [DEVICE_FIXTURE_RECV[0]]
+        self.citrix_adm.load_devices()
         self.assertEqual(
-            {dev["hostname"] for dev in DEVICE_FIXTURE_RECV},
+            {"UYLLBFRCXM55-EA"},
             {dev.get_unique_id() for dev in self.citrix_adm.get_all("device")},
         )
 
     def test_load_devices_duplicate(self):
         """Test the Nautobot SSoT Citrix ADM load_devices() function with duplicate devices."""
+        self.citrix_adm.adm_site_map[DEVICE_FIXTURE_RECV[3]["datacenter_id"]] = SITE_FIXTURE_RECV[2]
+        self.citrix_adm_client.get_devices.return_value = [DEVICE_FIXTURE_RECV[3]]
+        self.citrix_adm.load_devices()
         self.citrix_adm.load_devices()
         self.job.log_warning.assert_called_with(
             message="Duplicate Device attempting to be loaded: OGI-MSCI-IMS-Mctdgj-Pqsf-M"
@@ -96,6 +97,8 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
 
     def test_load_ports(self):
         """Test the Nautobot SSoT Citrix ADM load_ports() function."""
+
+        self.citrix_adm.load_ports()
         expected_ports = {
             f"{port['port']}__{adc['hostname']}"
             for _, adc in self.citrix_adm.adm_device_map.items()
@@ -108,6 +111,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
 
     def test_management_addresses_loaded(self):
         """Test the Nautobot SSoT Citrix ADM loads management addresses."""
+        self.citrix_adm.load()
         expected_addrs = [
             f"{addr['mgmt_ip_address']}/{netmask_to_cidr(addr['netmask'])}__{addr['hostname']}__Management"
             for addr in DEVICE_FIXTURE_RECV
@@ -118,6 +122,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
 
     def test_port_addresses_loaded(self):
         """Test the Nautobot SSoT Citrix ADM loads port addresses."""
+        self.citrix_adm.load_addresses()
         expected_addrs = [
             f"{port['ipaddress']}/{port['netmask']}__{adc['hostname']}__{port['port']}"
             for _, adc in self.citrix_adm.adm_device_map.items()
@@ -192,11 +197,9 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
         self.citrix_adm.get = MagicMock()
         self.citrix_adm.get.side_effect = [mock_dev, mock_intf, mock_addr]
 
-        self.citrix_adm.label_object("device", self.test_dev.name, self.sor_cf)
-        self.citrix_adm.label_object("port", f"{self.intf.name}__{self.test_dev.name}", self.sor_cf)
-        self.citrix_adm.label_object(
-            "address", f"{self.addr.address}__{self.test_dev.name}__{self.intf.name}", self.sor_cf
-        )
+        self.citrix_adm.label_object("device", self.test_dev.name)
+        self.citrix_adm.label_object("port", f"{self.intf.name}__{self.test_dev.name}")
+        self.citrix_adm.label_object("address", f"{self.addr.address}__{self.test_dev.name}__{self.intf.name}")
 
         self.intf.refresh_from_db()
         self.assertIn(self.sor_cf.name, self.intf.custom_field_data)
