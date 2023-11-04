@@ -185,7 +185,7 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
 
     def create_port_map(self):
         """Create a port/vlan/ip map for each ADC instance."""
-        self.job.log_info(message=f"Retrieving nsip and port bindings from ADC instances.")
+        self.job.log_info(message="Retrieving nsip and port bindings from ADC instances.")
         for _, adc in self.adm_device_map.items():
             nsip6s = self.conn.get_nsip6(adc)
             vlan_bindings = self.conn.get_vlan_bindings(adc)
