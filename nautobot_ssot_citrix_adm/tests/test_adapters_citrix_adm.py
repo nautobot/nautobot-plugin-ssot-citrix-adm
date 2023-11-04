@@ -5,7 +5,6 @@ from diffsync.exceptions import ObjectNotFound
 from django.contrib.contenttypes.models import ContentType
 from netutils.ip import netmask_to_cidr
 from nautobot.dcim.models import Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
-from nautobot.extras.choices import CustomFieldTypeChoices
 from nautobot.extras.models import CustomField, Job, JobResult, Status
 from nautobot.ipam.models import IPAddress
 from nautobot.utilities.testing import TransactionTestCase
@@ -14,7 +13,6 @@ from nautobot_ssot_citrix_adm.jobs import CitrixAdmDataSource
 from nautobot_ssot_citrix_adm.tests.fixtures import (
     SITE_FIXTURE_RECV,
     DEVICE_FIXTURE_RECV,
-    PORT_FIXTURE_RECV,
     VLAN_FIXTURE_RECV,
     NSIP6_FIXTURE_RECV,
 )
@@ -41,7 +39,6 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
         self.citrix_adm_client = MagicMock()
         self.citrix_adm_client.get_sites.return_value = SITE_FIXTURE_RECV
         self.citrix_adm_client.get_devices.return_value = DEVICE_FIXTURE_RECV
-        self.citrix_adm_client.get_ports.return_value = PORT_FIXTURE_RECV
         self.citrix_adm_client.get_vlan_bindings.side_effect = VLAN_FIXTURE_RECV
         self.citrix_adm_client.get_nsip6.side_effect = NSIP6_FIXTURE_RECV
 
@@ -109,21 +106,6 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
         actual_ports = [port.get_unique_id() for port in self.citrix_adm.get_all("port")]
         self.assertEqual(sorted(expected_ports), sorted(actual_ports))
 
-    '''def test_load_ports_duplicate(self):
-        """Test the Nautobot SSoT Citrix ADM load_ports() function with duplicate ports."""
-        self.citrix_adm.load_ports()
-        self.job.log_warning.assert_called_with(
-            message="Duplicate port 10/1 attempting to be loaded for OGI-MSCI-IMS-Mctdgj-Pqsf-M."
-        )'''
-
-    '''def test_load_ports_missing_device(self):
-        """Test the Nautobot SSoT Citrix ADM load_ports() function with a missing device."""
-        self.citrix_adm_client.get_ports.return_value = [{"devicename": "10/1", "hostname": "Test"}]
-        self.citrix_adm.get = MagicMock()
-        self.citrix_adm.get.side_effect = [ObjectNotFound, ObjectNotFound]
-        self.citrix_adm.load_ports()
-        self.job.log_warning.assert_called_with(message="Unable to find device Test so skipping loading of port 10/1.")'''
-
     def test_management_addresses_loaded(self):
         """Test the Nautobot SSoT Citrix ADM loads management addresses."""
         expected_addrs = [
@@ -149,33 +131,6 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
         actual_addrs = [addr.get_unique_id() for addr in self.citrix_adm.get_all("address")]
         for addr in expected_addrs:
             self.assertTrue(addr in actual_addrs)
-
-    '''def test_management_port_updated(self):
-        """Test the Nautobot SSoT Citrix ADM updates management port if IP found on another."""
-        update_port = {
-            "devicename": "LO/1",
-            "ns_ip_address": "85.52.0.128",
-            "state": "ENABLED",
-            "hostname": "OLQE-WHOO-KAL-WKH-SndJhcc3-X",
-            "description": "",
-        }
-        self.citrix_adm_client.get_ports.return_value = PORT_FIXTURE_RECV + [update_port]
-        self.citrix_adm.load_ports()
-        self.job.log_info.assert_called_with(
-            message="Management address 85.52.0.128 found on LO/1 so updating DiffSync models to use this port."
-        )'''
-
-    def test_label_imported_objects_custom_field(self):
-        """Validate the label_imported_objects() successfully creates CustomField."""
-        target = MagicMock()
-        self.citrix_adm.label_object = MagicMock()
-        self.citrix_adm.label_imported_objects(target)
-        dev_customfield = CustomField.objects.get(name="ssot_last_synchronized")
-        self.assertEqual(dev_customfield.type, CustomFieldTypeChoices.TYPE_DATE)
-        self.assertEqual(dev_customfield.label, "Last sync from System of Record")
-        device_ct = ContentType.objects.get_for_model(Device)
-        self.assertIn(dev_customfield, device_ct.custom_fields.all())
-        self.citrix_adm.label_object.assert_called()
 
     def test_label_imported_objects_not_found(self):
         """Validate the label_imported_objects() handling ObjectNotFound."""
@@ -251,11 +206,9 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
     def test_label_object_when_object_not_found(self):
         """Validate the label_object() handling ObjectNotFound."""
         self.build_nautobot_objects()
-        self.citrix_adm.label_object("device", self.test_dev.name, self.sor_cf)
-        self.citrix_adm.label_object("port", f"{self.intf.name}__{self.test_dev.name}", self.sor_cf)
-        self.citrix_adm.label_object(
-            "address", f"{self.addr.address}__{self.test_dev.name}__{self.intf.name}", self.sor_cf
-        )
+        self.citrix_adm.label_object("device", self.test_dev.name)
+        self.citrix_adm.label_object("port", f"{self.intf.name}__{self.test_dev.name}")
+        self.citrix_adm.label_object("address", f"{self.addr.address}__{self.test_dev.name}__{self.intf.name}")
 
         self.test_dev.refresh_from_db()
         self.assertIn(self.sor_cf.name, self.test_dev.custom_field_data)

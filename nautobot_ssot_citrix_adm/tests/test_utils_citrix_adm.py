@@ -9,8 +9,6 @@ from nautobot_ssot_citrix_adm.tests.fixtures import (
     SITE_FIXTURE_RECV,
     DEVICE_FIXTURE_SENT,
     DEVICE_FIXTURE_RECV,
-    PORT_FIXTURE_SENT,
-    PORT_FIXTURE_RECV,
     NSIP6_FIXTURE_SENT,
     NSIP6_FIXTURE_RECV,
     VLAN_FIXTURE_SENT,
