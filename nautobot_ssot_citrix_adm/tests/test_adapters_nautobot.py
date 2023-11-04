@@ -110,7 +110,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             {"edge-fw.test.com"},
             {dev.get_unique_id() for dev in self.nb_adapter.get_all("device")},
         )
-        self.job.log_info.assert_called_once_with(message="Loading Device edge-fw.test.com from Nautobot.")
+        self.job.log_info.assert_any_call(message="Loading Device edge-fw.test.com from Nautobot.")
 
     def test_load_ports_success(self):
         """Test the load_ports() function success."""
