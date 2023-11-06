@@ -133,6 +133,20 @@ class CitrixNitroClient:
             return result[objecttype]
         self.log.log_failure(message="Error getting devices from Citrix ADM.")
         return {}
+    
+    def get_nsip(self, adc):
+        """Gather all nsip addresses from ADC instance using ADM as proxy."""
+        endpoint = "config"
+        objecttype = "nsip"
+        params = {}
+        self.headers["_MPS_API_PROXY_MANAGED_INSTANCE_USERNAME"] = self.username
+        self.headers["_MPS_API_PROXY_MANAGED_INSTANCE_PASSWORD"] = self.password
+        self.headers["_MPS_API_PROXY_MANAGED_INSTANCE_IP"] = adc["ip_address"]
+        result = self.request("GET", endpoint, objecttype, params=params)
+        if result:
+            return result[objecttype]
+        self.log.log_warning(message=f"Error getting nsip from {adc['hostname']}")
+        return {}
 
     def get_nsip6(self, adc):
         """Gather all nsip6 addresses from ADC instance using ADM as proxy."""
