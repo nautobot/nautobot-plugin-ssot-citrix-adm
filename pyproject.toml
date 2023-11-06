@@ -37,7 +37,7 @@ invoke = "*"
 ipython = "*"
 pydocstyle = "*"
 pylint = "*"
-pylint-django = "*"
+pylint-django = "2.5.3"
 pytest = "*"
 yamllint = "*"
 Markdown = "*"
@@ -61,7 +61,7 @@ python-semantic-release = "^7.33.3"
 
 [tool.black]
 line-length = 120
-target-version = ['py37']
+target-version = ['py38', 'py39', 'py310', 'py311']
 include = '\.pyi?$'
 exclude = '''
 (
