@@ -16,8 +16,10 @@ def nautobot_database_ready_callback(sender, *, apps, **kwargs):  # pylint: disa
     IPAddress = apps.get_model("ipam", "IPAddress")
     Platform = apps.get_model("dcim", "Platform")
 
-    Manufacturer.objects.update_or_create(name="Citrix", slug="citrix")
-    Platform.objects.update_or_create(name="citrix.adc", slug="netscaler", napalm_driver="netscaler")
+    citrix_manu, _ = Manufacturer.objects.update_or_create(name="Citrix", slug="citrix")
+    Platform.objects.update_or_create(
+        name="citrix.adc", slug="netscaler", napalm_driver="netscaler", manufacturer_id=citrix_manu.id
+    )
 
     os_cf_dict = {
         "name": "os_version",

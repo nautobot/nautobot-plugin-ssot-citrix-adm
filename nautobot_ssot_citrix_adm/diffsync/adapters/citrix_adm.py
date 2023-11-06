@@ -1,20 +1,22 @@
 """Nautobot SSoT Citrix ADM Adapter for Citrix ADM SSoT plugin."""
 from datetime import datetime
-from django.contrib.contenttypes.models import ContentType
+from django.conf import settings
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
 from netutils.ip import netmask_to_cidr
 from nautobot.dcim.models import Device, Interface
-from nautobot.extras.choices import CustomFieldTypeChoices
-from nautobot.extras.models import CustomField
+from nautobot.extras.models import Job
 from nautobot.ipam.models import IPAddress
+from nautobot_ssot_citrix_adm.constants import DEVICETYPE_MAP
 from nautobot_ssot_citrix_adm.diffsync.models.citrix_adm import (
     CitrixAdmDatacenter,
     CitrixAdmDevice,
     CitrixAdmPort,
     CitrixAdmAddress,
 )
-from nautobot_ssot_citrix_adm.utils.citrix_adm import parse_version, CitrixNitroClient
+from nautobot_ssot_citrix_adm.utils.citrix_adm import parse_hostname_for_role, parse_version, CitrixNitroClient
+
+PLUGIN_CFG = settings.PLUGINS_CONFIG["nautobot_ssot_citrix_adm"]
 
 
 class LabelMixin:
@@ -22,17 +24,6 @@ class LabelMixin:
 
     def label_imported_objects(self, target):
         """Add CustomFields to all objects that were successfully synced to the target."""
-        # Ensure that the "ssot-last-synchronized" custom field is present; as above, it *should* already exist.
-        cf_dict = {
-            "type": CustomFieldTypeChoices.TYPE_DATE,
-            "name": "ssot_last_synchronized",
-            "slug": "ssot_last_synchronized",
-            "label": "Last sync from System of Record",
-        }
-        custom_field, _ = CustomField.objects.get_or_create(name=cf_dict["name"], defaults=cf_dict)
-        for model in [Device, Interface, IPAddress]:
-            custom_field.content_types.add(ContentType.objects.get_for_model(model))
-
         for modelname in ["device", "port", "address"]:
             for local_instance in self.get_all(modelname):
                 unique_id = local_instance.get_unique_id()
@@ -42,18 +33,18 @@ class LabelMixin:
                 except ObjectNotFound:
                     continue
 
-                self.label_object(modelname, unique_id, custom_field)
+                self.label_object(modelname, unique_id)
 
-    def label_object(self, modelname, unique_id, custom_field):
+    def label_object(self, modelname, unique_id):
         """Apply the given CustomField to the identified object."""
 
         def _label_object(nautobot_object):
             """Apply custom field to object, if applicable."""
-            nautobot_object.custom_field_data[custom_field.name] = today
+            nautobot_object.custom_field_data["ssot_last_synchronized"] = today
             nautobot_object.custom_field_data["system_of_record"] = "Citrix ADM"
             nautobot_object.validated_save()
 
-        today = datetime.now().today()
+        today = datetime.today().date().isoformat()
         model_instance, name, device, port, address = None, None, None, None, None
         try:
             model_instance = self.get(modelname, unique_id)
@@ -102,44 +93,50 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
 
     top_level = ["datacenter", "device", "address"]
 
-    def __init__(self, *args, job=None, sync=None, client: CitrixNitroClient, **kwargs):
+    def __init__(self, *args, job: Job, sync=None, client: CitrixNitroClient, tenant: str = "", **kwargs):
         """Initialize Citrix ADM.
 
         Args:
-            job (object, optional): Citrix ADM job. Defaults to None.
+            job (Job): Citrix ADM job.
             sync (object, optional): Citrix ADM DiffSync. Defaults to None.
             client (CitrixNitroClient): Citrix ADM API client connection object.
+            tenant (str): Name of Tenant to associate Devices and IP Addresses with.
         """
         super().__init__(*args, **kwargs)
         self.job = job
         self.sync = sync
         self.conn = client
+        self.tenant = tenant
         self.adm_site_map = {}
         self.adm_device_map = {}
 
-    def load_sites(self):
-        """Load sites from Citrix ADM into DiffSync models."""
+    def create_site_map(self):
+        """Create mapping of ADM Datacenters to information about the Datacenter."""
         sites = self.conn.get_sites()
         for site in sites:
-            if site.get("name") == "Default":
-                self.job.log_info("Skipping loading of Default datacenter.")
-                continue
-            try:
-                found_site = self.get(self.datacenter, {"name": site.get("name"), "region": site.get("region")})
-                if found_site:
-                    self.job.log_warning(message=f"Duplicate Site attempting to be loaded: {site}.")
-            except ObjectNotFound:
-                if self.job.kwargs.get("debug"):
-                    self.job.log_info(message=f"Attempting to load DC: {site['name']} {site}")
-                new_site = self.datacenter(
-                    name=site["name"],
-                    region=site["region"],
-                    latitude=site["latitude"][:9].rstrip("0") if site.get("latitude") else "",
-                    longitude=site["longitude"][:9].rstrip("0") if site.get("longitude") else "",
-                    uuid=None,
-                )
-                self.add(new_site)
-                self.adm_site_map[site["id"]] = site["name"]
+            self.adm_site_map[site["id"]] = site
+
+    def load_site(self, site_info: dict):
+        """Load sites from Citrix ADM into DiffSync models.
+
+        Args:
+            site_info (dict): Dictionary containing information about Datacenter to be imported.
+        """
+        try:
+            found_site = self.get(self.datacenter, {"name": site_info.get("name"), "region": site_info.get("region")})
+            if found_site:
+                self.job.log_warning(message=f"Duplicate Site attempting to be loaded: {site_info}.")
+        except ObjectNotFound:
+            if self.job.kwargs.get("debug"):
+                self.job.log_info(message=f"Attempting to load DC: {site_info['name']}")
+            new_site = self.datacenter(
+                name=site_info["name"],
+                region=site_info["region"],
+                latitude=site_info["latitude"][:9].rstrip("0") if site_info.get("latitude") else "",
+                longitude=site_info["longitude"][:9].rstrip("0") if site_info.get("longitude") else "",
+                uuid=None,
+            )
+            self.add(new_site)
 
     def load_devices(self):
         """Load devices from Citrix ADM into DiffSync models."""
@@ -151,14 +148,21 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
             try:
                 found_dev = self.get(self.device, dev["hostname"])
                 if found_dev:
-                    self.job.log_warning(message=f"Duplicate Device attempting to be loaded: {dev}.")
+                    self.job.log_warning(message=f"Duplicate Device attempting to be loaded: {dev['hostname']}")
             except ObjectNotFound:
+                site = self.adm_site_map[dev["datacenter_id"]]
+                self.load_site(site_info=site)
+                role = parse_hostname_for_role(
+                    hostname_map=PLUGIN_CFG.get("hostname_mapping"), device_hostname=dev["hostname"]
+                )
                 new_dev = self.device(
                     name=dev["hostname"],
-                    model=dev["type"],
+                    model=DEVICETYPE_MAP[dev["type"]] if dev["type"] in DEVICETYPE_MAP else dev["type"],
+                    role=role,
                     serial=dev["serialnumber"],
-                    site=self.adm_site_map[dev["datacenter_id"]],
+                    site=site["name"],
                     status="Active" if dev["instance_state"] == "Up" else "Offline",
+                    tenant=self.tenant,
                     version=parse_version(dev["version"]),
                     uuid=None,
                 )
@@ -179,54 +183,83 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
                         except ObjectNotFound:
                             self.load_address(address=address, device=dev["hostname"], port="Management", primary=True)
 
+    def create_port_map(self):
+        """Create a port/vlan/ip map for each ADC instance."""
+        self.job.log_info(message="Retrieving nsip and port bindings from ADC instances.")
+        for _, adc in self.adm_device_map.items():
+            nsip6s = self.conn.get_nsip6(adc)
+            vlan_bindings = self.conn.get_vlan_bindings(adc)
+            ports = []
+
+            try:
+                for binding in vlan_bindings:
+                    if binding.get("vlan_nsip_binding"):
+                        for nsip in binding["vlan_nsip_binding"]:
+                            vlan = nsip["id"]
+                            ipaddress = nsip["ipaddress"]
+                            netmask = netmask_to_cidr(nsip["netmask"])
+                            port = binding["vlan_interface_binding"][0]["ifnum"]
+                            record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
+                            ports.append(record)
+                    if binding.get("vlan_nsip6_binding"):
+                        for nsip6 in binding["vlan_nsip6_binding"]:
+                            vlan = nsip6["id"]
+                            ipaddress, netmask = nsip6["ipaddress"].split("/")
+                            port = binding["vlan_interface_binding"][0]["ifnum"]
+                            record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
+                            ports.append(record)
+            except KeyError:
+                self.job.log_warning(message=f"Unable to load bindings for {adc['hostname']}.")
+
+            try:
+                for nsip6 in nsip6s:
+                    if nsip6["scope"] == "link-local":
+                        vlan = nsip6["vlan"]
+                        ipaddress, netmask = nsip6["ipv6address"].split("/")
+                        port = "L0/1"
+                        record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
+                        ports.append(record)
+            except KeyError:
+                self.job.log_warning(message=f"Unable to load nsip6 for {adc['hostname']}.")
+
+            self.adm_device_map[adc["hostname"]]["ports"] = ports
+
     def load_ports(self):
         """Load ports from Citrix ADM into DiffSync models."""
-        ports = self.conn.get_ports()
-        for port in ports:
-            try:
-                self.get(self.port, {"name": port["devicename"], "device": port["hostname"]})
-                self.job.log_warning(
-                    message=f"Duplicate port {port['devicename']} attempting to be loaded for {port['hostname']}."
-                )
-                continue
-            except ObjectNotFound:
+        for _, adc in self.adm_device_map.items():
+            for port in adc["ports"]:
                 try:
-                    dev = self.get(self.device, port["hostname"])
+                    self.get(self.port, {"name": port["port"], "device": adc["hostname"]})
+                except ObjectNotFound:
+                    dev = self.get(self.device, adc["hostname"])
                     new_port = self.add_port(
-                        dev_name=port["hostname"],
-                        port_name=port["devicename"],
-                        port_status=port["state"],
-                        description=port["description"],
+                        dev_name=adc["hostname"],
+                        port_name=port["port"],
+                        port_status="ENABLED",
+                        description="",
                     )
                     dev.add_child(new_port)
-                    if port.get("ns_ip_address"):
-                        netmask = netmask_to_cidr(self.adm_device_map[port["hostname"]]["netmask"])
-                        try:
-                            # check if address already loaded on Management port
-                            mgmt_addr = self.get(
-                                self.address,
-                                {
-                                    "address": f"{port['ns_ip_address']}/{netmask}",
-                                    "device": port["hostname"],
-                                    "port": "Management",
-                                },
-                            )
-                            self.job.log_info(
-                                message=f"Management address {port['ns_ip_address']} found on {port['devicename']} so updating DiffSync models to use this port."
-                            )
-                            mgmt_addr.port = port["devicename"]
-                            mgmt_port = self.get(self.port, {"name": "Management", "device": port["hostname"]})
-                            mgmt_port.name = port["devicename"]
-                        except ObjectNotFound:
-                            self.load_address(
-                                address=f"{port['ns_ip_address']}/{netmask}",
-                                device=port["hostname"],
-                                port=port["devicename"],
-                            )
-                except ObjectNotFound:
-                    self.job.log_warning(
-                        message=f"Unable to find device {port['hostname']} so skipping loading of port {port['devicename']}."
-                    )
+
+    def load_addresses(self):
+        """Load addresses from Citrix ADC instances into Diffsync models."""
+        for _, adc in self.adm_device_map.items():
+            for port in adc["ports"]:
+                if port.get("ipaddress"):
+                    try:
+                        self.get(
+                            self.address,
+                            {
+                                "address": f"{port['ipaddress']}/{port['netmask']}",
+                                "device": adc["hostname"],
+                                "port": port["port"],
+                            },
+                        )
+                    except ObjectNotFound:
+                        self.load_address(
+                            address=f"{port['ipaddress']}/{port['netmask']}",
+                            device=adc["hostname"],
+                            port=port["port"],
+                        )
 
     def add_port(
         self, dev_name: str, port_name: str = "Management", port_status: str = "ENABLED", description: str = ""
@@ -266,12 +299,15 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
             device=device,
             port=port,
             primary=primary,
+            tenant=self.tenant,
             uuid=None,
         )
         self.add(new_addr)
 
     def load(self):
         """Load data from Citrix ADM into DiffSync models."""
-        self.load_sites()
+        self.create_site_map()
         self.load_devices()
+        self.create_port_map()
         self.load_ports()
+        self.load_addresses()

@@ -2,10 +2,13 @@
 from typing import List, Optional
 from uuid import UUID
 from diffsync import DiffSyncModel
+from diffsync.enum import DiffSyncModelFlags
 
 
 class Datacenter(DiffSyncModel):
     """Diffsync model for Citrix ADM datacenters."""
+
+    model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
 
     _modelname = "datacenter"
     _identifiers = (
@@ -28,18 +31,22 @@ class Device(DiffSyncModel):
     _identifiers = ("name",)
     _attributes = (
         "model",
+        "role",
         "serial",
         "site",
         "status",
+        "tenant",
         "version",
     )
     _children = {"port": "ports"}
 
     name: str
     model: Optional[str]
+    role: str
     serial: Optional[str]
     site: Optional[str]
     status: Optional[str]
+    tenant: Optional[str]
     version: Optional[str]
     ports: Optional[List["Port"]] = []
 
@@ -67,12 +74,13 @@ class Address(DiffSyncModel):
 
     _modelname = "address"
     _identifiers = ("address", "device", "port")
-    _attributes = ("primary",)
+    _attributes = ("primary", "tenant")
     _children = {}
 
     address: str
     device: str
     port: str
     primary: bool
+    tenant: Optional[str]
 
     uuid: Optional[UUID]

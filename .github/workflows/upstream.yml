@@ -1,13 +1,13 @@
 ---
 name: "Nautobot Upstream Monitor"
 
-on: # yamllint disable-line rule:truthy rule:comments
+on:  # yamllint disable-line rule:truthy rule:comments
   schedule:
-    - cron: "0 4 */2 * *" # every other day at midnight
+    - cron: "0 4 */2 * *"  # every other day at midnight
 
 jobs:
   upstream-test:
     uses: "nautobot/nautobot/.github/workflows/plugin_upstream_testing_base.yml@develop"
-    with: # Below could potentially be collapsed into a single argument if a concrete relationship between both is enforced
-      invoke_context_name: "nautobot_ssot_citrix_adm"
+    with:  # Below could potentially be collapsed into a single argument if a concrete relationship between both is enforced
+      invoke_context_name: "NAUTOBOT_SSOT_CITRIX_ADM"
       plugin_name: "nautobot-plugin-ssot-citrix-adm"
