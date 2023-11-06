@@ -1,10 +1,20 @@
 """Nautobot DiffSync models for Citrix ADM SSoT."""
+from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import Device as NewDevice
 from nautobot.dcim.models import Region, Site, DeviceRole, DeviceType, Manufacturer, Interface, Platform
 from nautobot.extras.models import Status
 from nautobot.ipam.models import IPAddress
+from nautobot.tenancy.models import Tenant
 from nautobot_ssot_citrix_adm.diffsync.models.base import Datacenter, Device, Port, Address
+from nautobot_ssot_citrix_adm.utils.nautobot import add_software_lcm, assign_version_to_device
+
+try:
+    import nautobot_device_lifecycle_mgmt  # noqa: F401
+
+    LIFECYCLE_MGMT = True
+except ImportError:
+    LIFECYCLE_MGMT = False
 
 
 class NautobotDatacenter(Datacenter):
@@ -13,6 +23,9 @@ class NautobotDatacenter(Datacenter):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Site in Nautobot from NautobotDatacenter object."""
+        if Site.objects.filter(name=ids["name"]).exists():
+            diffsync.job.log_warning(message=f"Site {ids['name']} already exists so skipping creation.")
+            return None
         new_site = Site(
             name=ids["name"],
             status=Status.objects.get(name="Active"),
@@ -26,6 +39,9 @@ class NautobotDatacenter(Datacenter):
 
     def update(self, attrs):
         """Update Site in Nautobot from NautobotDatacenter object."""
+        if not settings.PLUGINS_CONFIG.get("nautobot_ssot_citrix_adm").get("update_sites"):
+            self.diffsync.job.log_warning(message=f"Update sites setting is disabled so skipping updating {self.name}.")
+            return None
         site = Site.objects.get(id=self.uuid)
         if "latitude" in attrs:
             site.latitude = attrs["latitude"]
@@ -34,13 +50,6 @@ class NautobotDatacenter(Datacenter):
         site.validated_save()
         return super().update(attrs)
 
-    def delete(self):
-        """Delete Site in Nautobot from NautobotDatacenter object."""
-        site = Site.objects.get(id=self.uuid)
-        self.diffsync.job.log_info(message=f"Deleting Site {site.name}.")
-        self.diffsync.objects_to_delete["sites"].append(site)
-        return self
-
 
 class NautobotDevice(Device):
     """Nautobot implementation of Citrix ADM Device model."""
@@ -48,7 +57,7 @@ class NautobotDevice(Device):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Device in Nautobot from NautobotDevice object."""
-        lb_role, _ = DeviceRole.objects.get_or_create(name="Load-Balancer")
+        lb_role, _ = DeviceRole.objects.get_or_create(name=attrs["role"])
         lb_dt, _ = DeviceType.objects.get_or_create(
             model=attrs["model"], manufacturer=Manufacturer.objects.get(name="Citrix")
         )
@@ -61,8 +70,13 @@ class NautobotDevice(Device):
             serial=attrs["serial"],
             platform=Platform.objects.get(slug="netscaler"),
         )
+        if attrs.get("tenant"):
+            new_device.tenant = Tenant.objects.update_or_create(name=attrs["tenant"])[0]
         if attrs.get("version"):
             new_device.custom_field_data.update({"os_version": attrs["version"]})
+            if LIFECYCLE_MGMT:
+                lcm_obj = add_software_lcm(diffsync=diffsync, platform="netscaler", version=attrs["version"])
+                assign_version_to_device(diffsync=diffsync, device=new_device, software_lcm=lcm_obj)
         new_device.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
@@ -76,13 +90,21 @@ class NautobotDevice(Device):
         if "status" in attrs:
             device.status = Status.objects.get(name=attrs["status"])
         if "role" in attrs:
-            device.device_role, _ = DeviceRole.objects.get_or_create(name="Load-Balancer")
+            device.device_role = DeviceRole.objects.get_or_create(name=attrs["role"])[0]
         if "serial" in attrs:
             device.serial = attrs["serial"]
         if "site" in attrs:
             device.site = Site.objects.get(name=attrs["site"])
-        if attrs.get("version"):
+        if "tenant" in attrs:
+            if attrs.get("tenant"):
+                device.tenant = Tenant.objects.update_or_create(name=attrs["tenant"])[0]
+            else:
+                device.tenant = None
+        if "version" in attrs:
             device.custom_field_data.update({"os_version": attrs["version"]})
+            if LIFECYCLE_MGMT:
+                lcm_obj = add_software_lcm(diffsync=self.diffsync, platform="netscaler", version=attrs["version"])
+                assign_version_to_device(diffsync=self.diffsync, device=device, software_lcm=lcm_obj)
         device.validated_save()
         return super().update(attrs)
 
@@ -90,7 +112,8 @@ class NautobotDevice(Device):
         """Delete Device in Nautobot from NautobotDevice object."""
         dev = NewDevice.objects.get(id=self.uuid)
         super().delete()
-        dev.delete()
+        self.diffsync.job.log_info(message=f"Deleting Device {dev.name}.")
+        self.diffsync.objects_to_delete["devices"].append(dev)
         return self
 
 
@@ -125,7 +148,8 @@ class NautobotPort(Port):
         """Delete Interface in Nautobot from NautobotPort object."""
         port = Interface.objects.get(id=self.uuid)
         super().delete()
-        port.delete()
+        self.diffsync.job.log_info(message=f"Deleting Port {port.name} for {port.device.name}.")
+        self.diffsync.objects_to_delete["ports"].append(port)
         return self
 
 
@@ -143,6 +167,8 @@ class NautobotAddress(Address):
             assigned_object_type=ContentType.objects.get_for_model(Interface),
             assigned_object_id=interface.id,
         )
+        if attrs.get("tenant"):
+            new_ip.tenant = Tenant.objects.update_or_create(name=attrs["tenant"])[0]
         new_ip.validated_save()
         if attrs.get("primary"):
             if new_ip.family == 4:
@@ -162,6 +188,11 @@ class NautobotAddress(Address):
             else:
                 device.primary_ip6 = addr
             device.validated_save()
+        if "tenant" in attrs:
+            if attrs.get("tenant"):
+                addr.tenant = Tenant.objects.update_or_create(name=attrs["tenant"])[0]
+            else:
+                addr.tenant = None
         addr.validated_save()
         return super().update(attrs)
 
@@ -169,5 +200,6 @@ class NautobotAddress(Address):
         """Delete IP Address in Nautobot from NautobotAddress object."""
         addr = IPAddress.objects.get(id=self.uuid)
         super().delete()
-        addr.delete()
+        self.diffsync.job.log_info(message=f"Deleting IP Address {self}.")
+        self.diffsync.objects_to_delete["addresses"].append(addr)
         return self

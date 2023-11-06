@@ -132,7 +132,7 @@ CACHEOPS_REDIS = parse_redis_connection(redis_database=1)
 #
 
 # Enable installed plugins. Add the name of each plugin to the list.
-PLUGINS = ["nautobot_ssot", "nautobot_ssot_citrix_adm"]
+PLUGINS = ["nautobot_ssot", "nautobot_ssot_citrix_adm", "nautobot_device_lifecycle_mgmt"]
 
 # Plugins configuration settings. These settings are used by various plugins that the user may have installed.
 # Each key in the dictionary is the name of an installed plugin and its value is a dictionary of settings.
@@ -145,5 +145,13 @@ PLUGINS_CONFIG = {
         "username": os.getenv("NAUTOBOT_SSOT_CITRIX_USERNAME", ""),
         "password": os.getenv("NAUTOBOT_SSOT_CITRIX_PASSWORD", ""),
         "verify": is_truthy(os.getenv("NAUTOBOT_SSOT_CITRIX_VERIFY", True)),
+        "update_sites": is_truthy(os.getenv("NAUTOBOT_SSOT_CITRIX_ADM_UPDATE_SITES", True)),
+        "tenant": os.getenv("NAUTOBOT_SSOT_CITRIX_TENANT", ""),
+        "hostname_mapping": [],
+    },
+    "nautobot_device_lifecycle_mgmt": {
+        "barchart_bar_width": float(os.environ.get("BARCHART_BAR_WIDTH", 0.1)),
+        "barchart_width": int(os.environ.get("BARCHART_WIDTH", 12)),
+        "barchart_height": int(os.environ.get("BARCHART_HEIGHT", 5)),
     },
 }

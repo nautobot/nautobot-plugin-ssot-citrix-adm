@@ -2,6 +2,7 @@
 import uuid
 from unittest.mock import MagicMock
 from django.contrib.contenttypes.models import ContentType
+from django.db.models import ProtectedError
 from diffsync.exceptions import ObjectNotFound
 from nautobot.dcim.models import (
     Device,
@@ -64,7 +65,8 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             site=self.hq_site,
             status=self.status_active,
         )
-        core_router.custom_field_data["os_version"] = "1.2.3"
+        core_router._custom_field_data["os_version"] = "1.2.3"  # pylint: disable=protected-access
+        core_router._custom_field_data["system_of_record"] = "Citrix ADM"  # pylint: disable=protected-access
         core_router.validated_save()
         mgmt_intf = Interface.objects.create(name="Management", type="virtual", device=core_router)
         mgmt_intf.validated_save()
@@ -75,6 +77,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             assigned_object_type=ContentType.objects.get_for_model(Interface),
             status=self.status_active,
         )
+        mgmt_addr._custom_field_data["system_of_record"] = "Citrix ADM"  # pylint: disable=protected-access
         mgmt_addr.validated_save()
         mgmt_addr6 = IPAddress.objects.create(
             address="2001:db8:3333:4444:5555:6666:7777:8888/128",
@@ -82,6 +85,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             assigned_object_type=ContentType.objects.get_for_model(Interface),
             status=self.status_active,
         )
+        mgmt_addr6._custom_field_data["system_of_record"] = "Citrix ADM"  # pylint: disable=protected-access
         mgmt_addr6.validated_save()
 
         core_router.primary_ip4 = mgmt_addr
@@ -106,7 +110,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             {"edge-fw.test.com"},
             {dev.get_unique_id() for dev in self.nb_adapter.get_all("device")},
         )
-        self.job.log_info.assert_called_once_with(message="Loading Device edge-fw.test.com from Nautobot.")
+        self.job.log_info.assert_any_call(message="Loading Device edge-fw.test.com from Nautobot.")
 
     def test_load_ports_success(self):
         """Test the load_ports() function success."""
@@ -139,22 +143,44 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
 
     def test_sync_complete(self):
         """Test the sync_complete() method in the NautobotAdapter."""
-        self.nb_adapter.objects_to_delete = {"sites": [MagicMock()]}
+        self.nb_adapter.objects_to_delete = {
+            "devices": [MagicMock()],
+            "ports": [MagicMock()],
+            "addresses": [MagicMock()],
+        }
         self.nb_adapter.job = MagicMock()
         self.nb_adapter.job.log_info = MagicMock()
 
         deleted_objs = []
-        for group in ["sites"]:
+        for group in ["addresses", "ports", "devices"]:
             deleted_objs.extend(self.nb_adapter.objects_to_delete[group])
 
         self.nb_adapter.sync_complete(diff=MagicMock(), source=MagicMock())
 
         for obj in deleted_objs:
             self.assertTrue(obj.delete.called)
-        self.assertEqual(len(self.nb_adapter.objects_to_delete["sites"]), 0)
+        self.assertEqual(len(self.nb_adapter.objects_to_delete["addresses"]), 0)
+        self.assertEqual(len(self.nb_adapter.objects_to_delete["ports"]), 0)
+        self.assertEqual(len(self.nb_adapter.objects_to_delete["devices"]), 0)
         self.assertTrue(self.nb_adapter.job.log_info.called)
-        self.assertTrue(self.nb_adapter.job.log_info.call_count, 2)
+        self.assertTrue(self.nb_adapter.job.log_info.call_count, 4)
         self.assertTrue(self.nb_adapter.job.log_info.call_args_list[0].startswith("Deleting"))
+        self.assertTrue(self.nb_adapter.job.log_info.call_args_list[1].startswith("Deleting"))
+        self.assertTrue(self.nb_adapter.job.log_info.call_args_list[2].startswith("Deleting"))
+        self.assertTrue(self.nb_adapter.job.log_info.call_args_list[3].startswith("Deleting"))
+
+    def test_sync_complete_protected_error(self):
+        """
+        Tests that ProtectedError exception is handled when deleting objects from Nautobot.
+        """
+        mock_dev = MagicMock()
+        mock_dev.delete.side_effect = ProtectedError(msg="Cannot delete protected object.", protected_objects=mock_dev)
+        self.nb_adapter.label_imported_objects = MagicMock(id="test")
+        self.nb_adapter.objects_to_delete["devices"].append(mock_dev)
+        self.nb_adapter.sync_complete(source=self.nb_adapter, diff=MagicMock())
+        self.nb_adapter.label_imported_objects.assert_called_once()
+        self.job.log_info.assert_called()
+        self.job.log_info.calls[1].starts_with("Deletion failed protected object")
 
     def test_load(self):
         """Test the load() function."""

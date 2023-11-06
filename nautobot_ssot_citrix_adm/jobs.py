@@ -51,7 +51,9 @@ class CitrixAdmDataSource(DataSource, Job):
             logger=self,
         )
         client.login()
-        self.source_adapter = citrix_adm.CitrixAdmAdapter(job=self, sync=self.sync, client=client)
+        self.source_adapter = citrix_adm.CitrixAdmAdapter(
+            job=self, sync=self.sync, client=client, tenant=PLUGIN_CFG.get("tenant")
+        )
         self.source_adapter.load()
         client.logout()
 
@@ -104,7 +106,9 @@ class CitrixAdmDataTarget(DataTarget, Job):
             logger=self,
         )
         client.login()
-        self.target_adapter = citrix_adm.CitrixAdmAdapter(job=self, sync=self.sync, client=client)
+        self.target_adapter = citrix_adm.CitrixAdmAdapter(
+            job=self, sync=self.sync, client=client, tenant=PLUGIN_CFG.get("tenant")
+        )
         self.target_adapter.load()
         client.logout()
 
