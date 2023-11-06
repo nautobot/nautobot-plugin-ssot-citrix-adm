@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.1.0 (2023-11-06)
+
+### Feature
+
+* Netscaler IP's (NSIPs) ([`a98b7d8`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/a98b7d808319cdd38481fadc20b90e068f158434))
+* ✨ Add hostname_mapping feature to parse hostname for DeviceRole. ([`88f694e`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/88f694e3fe0d80bb41d83b69010ad3de00762d4b))
+* ✨ Add hostname_mapping feature to parse hostname for DeviceRole. ([`b18185e`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/b18185ea99c2f3a48c158c0c1e84fe12fc586840))
+* ✨ Add tenant plugin setting for assigning Tenant to Device and IPAddress ([`542818e`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/542818e799c1c1c26766d98ad8f9ef96d88ad5d3))
+* ✨ Add tenant plugin setting for assigning Tenant to Device and IPAddress ([`8c1be7d`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/8c1be7d6d174ec2ed3166deb20ea6bdf0248a181))
+* ✨ Add update_sites setting to prevent updating Sites when unwanted. ([`a0e2164`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/a0e21646b7b903dd8ee693934d5882ba53ffc908))
+* ✨ Add update_sites setting to prevent updating Sites when unwanted. ([`14e65fd`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/14e65fd53960ceb310d248541b03d6629edae5e7))
+* ✨ Add DeviceType map for better device model to be imported. ([`65eb06a`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/65eb06a926c1abbc622c485ad2fc99f1c542295c))
+* ✨ Add DeviceType map for better device model to be imported. ([`db34f12`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/db34f12377134e03bd90f5a5b6a5a3117a97ddd1))
+* ✨ Add DLC support to Device create/update functions ([`9325d18`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/9325d18ff44005512814612efd6b0008fbbd0334))
+* ✨ Add DLC support to Device create/update functions ([`171cd91`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/171cd915d3debdfe210170006952de016b621600))
+* ➕ Add Device Lifecycle Management App as optional dependency ([`65e505a`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/65e505a778b2c33dcc2cf6f96df56ed6c376aa3e))
+* ➕ Add Device Lifecycle Management App as optional dependency ([`cd5e80d`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/cd5e80de8eaa43933162381dd7eca49cf0e141de))
+
+### Fix
+
+* :bug: Fix the DLC import to trigger DLC support ([`be9b9fb`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/be9b9fb8f6fb6c7b50bc173299e69c6abc9925a7))
+* Use manufacturer_id ([`7b66d66`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/7b66d6688d8fdf377fd161ee04f3a2ef2d6af9db))
+* It's a tuple dummy! ([`8850545`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/8850545784b972fa0a319558718f7dc66cc05e3c))
+* Add Manufacturer to Platform ([`f8cb2d1`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/f8cb2d16f24980515965cccacc68ba7fe9717937))
+* 🐛 Specify manufacturer for Platform ([`68a1495`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/68a14952fbd490e66d821db354c530cc3a8d7290))
+* 🐛 Correct Last Sync from SoR to use date in ISO format. ([`5ae6405`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/5ae640546cb43a880dc9b3bfe55bef315b0a3044))
+* 🐛 Correct Last Sync from SoR to use date in ISO format. ([`b483b0f`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/b483b0fb15e10d151762bcfd2070d2c0f98d5e1f))
+* 🐛 Specify name attribute when getting DeviceRole ([`3c360f9`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/3c360f93b609f2a2b610eeabc5c0f54c374e1287))
+* 🐛 Specify name attribute when getting DeviceRole ([`88cfc68`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/88cfc68d86938da4f68bc7747fc269a69df13f2a))
+* Add check for base_url ending with slash and remove if found ([`febfbae`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/febfbaeebaba21ad2bcc9954cbb0eb06b5aa34b6))
+* Add check for base_url ending with slash and remove if found ([`e8a562d`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/e8a562ddf4739890246cd59c169560601fd1d7c5))
+
+### Documentation
+
+* 📝 Add docstring for test_init function ([`c2baa84`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/c2baa8452bf02d71ca57369ebafae74591c4a799))
+* 📝 Add docstring for test_init function ([`02c56d9`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/02c56d912d6d764fdb728ecd4464623859eeeba9))
+
+### Performance
+
+* ⚡️ Refactor slightly for better performance by minimizing database calls. ([`5ed0e35`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/5ed0e35283c088732f3ec5aab515d51da3f60e29))
+* ⚡️ Refactor slightly for better performance by minimizing database calls. ([`ec34e13`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/ec34e1309c6d36c41506691e125c6022ec953811))
+
 ## v1.0.0 (2023-05-04)
 ### Feature
 * ✨ Add LabelMixin to add CustomField for SoR and Last Sync updates ([`8778924`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/87789246f16492d73e2d68a17b322e3391afc3bd))
