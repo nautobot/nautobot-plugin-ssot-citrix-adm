@@ -5,7 +5,6 @@ from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import Device, Platform
 from nautobot.extras.models import Relationship, RelationshipAssociation
 from taggit.managers import TaggableManager
-from netutils.ip import netmask_to_cidr, is_ip_within
 
 try:
     from nautobot_device_lifecycle_mgmt.models import SoftwareLCM
@@ -76,4 +75,3 @@ def get_tag_strings(list_tags: TaggableManager) -> List[str]:
     if len(_strings) > 1:
         _strings.sort()
     return _strings
-

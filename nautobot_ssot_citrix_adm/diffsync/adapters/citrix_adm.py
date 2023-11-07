@@ -19,8 +19,8 @@ from nautobot_ssot_citrix_adm.utils.citrix_adm import (
     parse_version,
     CitrixNitroClient,
     parse_vlan_bindings,
-    parse_nsip,
-    parse_nsip6,
+    parse_nsips,
+    parse_nsip6s,
 )
 
 PLUGIN_CFG = settings.PLUGINS_CONFIG["nautobot_ssot_citrix_adm"]
