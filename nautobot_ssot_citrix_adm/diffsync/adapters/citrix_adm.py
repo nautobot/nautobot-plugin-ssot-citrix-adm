@@ -3,7 +3,7 @@ from datetime import datetime
 from django.conf import settings
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
-from netutils.ip import netmask_to_cidr, is_ip_within
+from netutils.ip import netmask_to_cidr
 from nautobot.dcim.models import Device, Interface
 from nautobot.extras.models import Job
 from nautobot.ipam.models import IPAddress
@@ -19,8 +19,8 @@ from nautobot_ssot_citrix_adm.utils.citrix_adm import (
     parse_version,
     CitrixNitroClient,
     parse_vlan_bindings,
-    parse_nsips,
-    parse_nsip6s,
+    parse_nsip,
+    parse_nsip6,
 )
 
 PLUGIN_CFG = settings.PLUGINS_CONFIG["nautobot_ssot_citrix_adm"]
@@ -186,71 +186,12 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
             vlan_bindings = self.conn.get_vlan_bindings(adc)
             nsips = self.conn.get_nsip(adc)
             nsip6s = self.conn.get_nsip6(adc)
-            
-            ports = self.parse_vlan_bindings(vlan_bindings)
-            ports = self.parse_nsip(nsips, ports)
-            ports = self.parse_nsip6(nsip6s, ports)
-            
+
+            ports = parse_vlan_bindings(vlan_bindings)
+            ports = parse_nsip(nsips, ports)
+            ports = parse_nsip6(nsip6s, ports)
+
             self.adm_device_map[adc["hostname"]]["ports"] = ports
-
-    def parse_vlan_bindings(self, vlan_bindings):
-        """Parse vlan bindings."""
-        ports = []
-        for binding in vlan_bindings:
-            if binding.get("vlan_nsip_binding"):
-                for nsip in binding["vlan_nsip_binding"]:
-                    vlan = nsip["id"]
-                    ipaddress = nsip["ipaddress"]
-                    netmask = netmask_to_cidr(nsip["netmask"])
-                    port = binding["vlan_port_binding"][0]["ifnum"]
-                    record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
-                    ports.append(record)
-            if binding.get("vlan_nsip6_binding"):
-                for nsip6 in binding["vlan_nsip6_binding"]:
-                    vlan = nsip6["id"]
-                    ipaddress, netmask = nsip6["ipaddress"].split("/")
-                    port = binding["vlan_port_binding"][0]["ifnum"]
-                    record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
-                    ports.append(record)
-                    
-        return ports
-
-    def parse_nsips(self, nsips, ports):
-        """Parse Netscaler IPv4 Addresses."""
-        for nsip in nsips:
-            if nsip["type"] == "NSIP":
-                for port in ports:
-                    # add a tag to existing record
-                    if port["ipaddress"] == nsip["ipaddress"]:
-                        port["tag"] = "NSIP"
-                        break
-            if nsip["type"] == "SNIP":
-                for port in ports:
-                    # skip if already found
-                    if port["ipaddress"] == nsip["ipaddress"]:
-                        break
-                    # compare SNIP to bound addresses to determine port
-                    if is_ip_within(nsip["ipaddress"], f"{port['ipaddress']}/{port['netmask']}"):
-                        port = port["port"]
-                        vlan = port["vlan"]
-                        ipaddress = nsip["ipaddress"]
-                        netmask = netmask_to_cidr(nsip["netmask"])
-                        record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
-                        ports.append(record)
-        return ports
-
-    def parse_nsip6s(self, nsip6s, ports):
-        """Parse Netscaler IPv6 Addresses."""
-        for nsip6 in nsip6s:
-            if nsip6["scope"] == "link-local":
-                vlan = nsip6["vlan"]
-                ipaddress, netmask = nsip6["ipv6address"].split("/")
-                port = "L0/1"
-                record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
-                ports.append(record)
-
-        return ports
-    
 
     def load_ports(self):
         """Load ports from Citrix ADM into DiffSync models."""
@@ -286,13 +227,11 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
                         _tags = port["tags"] if port.get("tags") else []
                         if len(_tags) > 1:
                             _tags.sort()
-                        _primary = True if "MGMT" in _tags or "MIP" in _tags else False
                         self.load_address(
                             address=f"{port['ipaddress']}/{port['netmask']}",
                             device=adc["hostname"],
                             port=port["port"],
                             tags=_tags,
-                            primary=_primary,
                         )
 
     def add_port(
