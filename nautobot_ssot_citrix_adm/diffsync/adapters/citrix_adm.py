@@ -188,8 +188,8 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
             nsip6s = self.conn.get_nsip6(adc)
 
             ports = parse_vlan_bindings(vlan_bindings)
-            ports = parse_nsip(nsips, ports)
-            ports = parse_nsip6(nsip6s, ports)
+            ports = parse_nsips(nsips, ports)
+            ports = parse_nsip6s(nsip6s, ports)
 
             self.adm_device_map[adc["hostname"]]["ports"] = ports
 
