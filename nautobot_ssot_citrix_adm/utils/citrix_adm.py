@@ -2,6 +2,7 @@
 import re
 from typing import List, Union, Optional, Tuple
 import requests
+from netutils.ip import netmask_to_cidr, is_ip_within
 
 
 # based on client found at https://github.com/slauger/python-nitro
@@ -211,6 +212,7 @@ def parse_hostname_for_role(hostname_map: List[Tuple[str, str]], device_hostname
                 device_role = entry[1]
     return device_role
 
+
 def parse_vlan_bindings(vlan_bindings: List[dict]) -> List[dict]:
     """Parses output from get_vlan_bindings() into a list of ports and bound addresses.
     
@@ -239,6 +241,7 @@ def parse_vlan_bindings(vlan_bindings: List[dict]) -> List[dict]:
                 ports.append(record)
                 
     return ports
+
 
 def parse_nsips(nsips : List[dict], ports : List[dict]) -> List[dict]:
     """Parse Netscaler IPv4 Addresses
@@ -271,6 +274,7 @@ def parse_nsips(nsips : List[dict], ports : List[dict]) -> List[dict]:
                     ports.append(record)
     return ports
 
+
 def parse_nsip6s(nsip6s : List[dict], ports : List[dict]) -> List[dict]:
     """Parse Netscaler IPv6 Addresses
 
@@ -290,3 +294,4 @@ def parse_nsip6s(nsip6s : List[dict], ports : List[dict]) -> List[dict]:
             ports.append(record)
 
     return ports
+
