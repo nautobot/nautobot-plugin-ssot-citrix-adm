@@ -169,6 +169,8 @@ class NautobotAddress(Address):
         )
         if attrs.get("tenant"):
             new_ip.tenant = Tenant.objects.update_or_create(name=attrs["tenant"])[0]
+        if attrs.get("tags"):
+            new_ip.tags.set(attrs["tags"])
         new_ip.validated_save()
         if attrs.get("primary"):
             if new_ip.family == 4:
@@ -193,6 +195,10 @@ class NautobotAddress(Address):
                 addr.tenant = Tenant.objects.update_or_create(name=attrs["tenant"])[0]
             else:
                 addr.tenant = None
+        if "tags" in attrs:
+            addr.tags.set(attrs["tags"])
+        else:
+            addr.tags.clear()
         addr.validated_save()
         return super().update(attrs)
 
