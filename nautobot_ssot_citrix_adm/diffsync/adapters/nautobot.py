@@ -14,6 +14,7 @@ from nautobot_ssot_citrix_adm.diffsync.models.nautobot import (
     NautobotDevice,
     NautobotPort,
 )
+from nautobot_ssot_citrix_adm.utils import nautobot
 
 try:
     import nautobot_device_lifecycle_mgmt  # noqa: F401
@@ -123,6 +124,7 @@ class NautobotAdapter(DiffSync):
                 primary=primary,
                 tenant=addr.tenant.name if addr.tenant else "",
                 uuid=addr.id,
+                tags=nautobot.get_tag_strings(addr.tags),
             )
             self.add(new_ip)
 
