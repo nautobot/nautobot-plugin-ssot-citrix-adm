@@ -210,3 +210,83 @@ def parse_hostname_for_role(hostname_map: List[Tuple[str, str]], device_hostname
             if match:
                 device_role = entry[1]
     return device_role
+
+def parse_vlan_bindings(vlan_bindings: List[dict]) -> List[dict]:
+    """Parses output from get_vlan_bindings() into a list of ports and bound addresses.
+    
+    Args:
+        vlan_bindings: Output from get_vlan_bindings().
+
+    Returns:
+        List[dict]: List of ports and bound addresses.
+    """
+    ports = []
+    for binding in vlan_bindings:
+        if binding.get("vlan_nsip_binding"):
+            for nsip in binding["vlan_nsip_binding"]:
+                vlan = nsip["id"]
+                ipaddress = nsip["ipaddress"]
+                netmask = netmask_to_cidr(nsip["netmask"])
+                port = binding["vlan_port_binding"][0]["ifnum"]
+                record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
+                ports.append(record)
+        if binding.get("vlan_nsip6_binding"):
+            for nsip6 in binding["vlan_nsip6_binding"]:
+                vlan = nsip6["id"]
+                ipaddress, netmask = nsip6["ipaddress"].split("/")
+                port = binding["vlan_port_binding"][0]["ifnum"]
+                record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
+                ports.append(record)
+                
+    return ports
+
+def parse_nsips(nsips : List[dict], ports : List[dict]) -> List[dict]:
+    """Parse Netscaler IPv4 Addresses
+    Args:
+        nsips (List[dict]): Output from get_nsips().
+        ports (List[dict]): Output from get_vlan_bindings().
+    
+    Returns:
+        List[dict]: List of ports and bound addresses.
+    """
+    for nsip in nsips:
+        if nsip["type"] == "NSIP":
+            for port in ports:
+                # add a tag to existing record
+                if port["ipaddress"] == nsip["ipaddress"]:
+                    port["tags"] = ["NSIP"]
+                    break
+        if nsip["type"] == "SNIP":
+            for port in ports:
+                # skip if already found
+                if port["ipaddress"] == nsip["ipaddress"]:
+                    break
+                # compare SNIP to bound addresses to determine port
+                if is_ip_within(nsip["ipaddress"], f"{port['ipaddress']}/{port['netmask']}"):
+                    port = port["port"]
+                    vlan = port["vlan"]
+                    ipaddress = nsip["ipaddress"]
+                    netmask = netmask_to_cidr(nsip["netmask"])
+                    record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
+                    ports.append(record)
+    return ports
+
+def parse_nsip6s(nsip6s : List[dict], ports : List[dict]) -> List[dict]:
+    """Parse Netscaler IPv6 Addresses
+
+    Args:
+        nsip6s (List[dict]): Output from get_nsip6s().
+        ports (List[dict]): Output from get_vlan_bindings().
+
+    Returns:
+        List[dict]: List of ports and bound addresses.
+    """
+    for nsip6 in nsip6s:
+        if nsip6["scope"] == "link-local":
+            vlan = nsip6["vlan"]
+            ipaddress, netmask = nsip6["ipv6address"].split("/")
+            port = "L0/1"
+            record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
+            ports.append(record)
+
+    return ports
