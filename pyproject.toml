@@ -8,22 +8,18 @@ readme = "README.md"
 homepage = "https://github.com/nautobot/nautobot-plugin-ssot-citrix-adm"
 repository = "https://github.com/nautobot/nautobot-plugin-ssot-citrix-adm"
 keywords = ["nautobot", "nautobot-plugin", "ssot", "citrix adm"]
-include = [
-    "LICENSE",
-    "README.md",
-]
-packages = [
-    { include = "nautobot_ssot_citrix_adm" },
-]
+include = ["LICENSE", "README.md"]
+packages = [{ include = "nautobot_ssot_citrix_adm" }]
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = ">=3.8,<3.12"
 # Required for Python 3.7 for now. See: https://stackoverflow.com/a/73932581/194311
 importlib-metadata = "4.13.0"
 # Used for local development
-nautobot = { version = "1.5.0" }
+nautobot = { version = "1.6.1" }
 nautobot-ssot = "^1.2.0"
-nautobot-device-lifecycle-mgmt = {version = "^1.2.0", optional = true}
+nautobot-device-lifecycle-mgmt = { version = "^1.2.0", optional = true }
+netutils = "1.6.0"
 
 [tool.poetry.dev-dependencies]
 bandit = "*"
@@ -84,12 +80,12 @@ exclude = '''
 
 [tool.pylint.master]
 # Include the pylint_django plugin to avoid spurious warnings about Django patterns
-load-plugins="pylint_django"
-ignore=".venv"
+load-plugins = "pylint_django"
+ignore = ".venv"
 
 [tool.pylint.basic]
 # No docstrings required for private methods (Pylint default), or for test_ functions, or for inner Meta classes.
-no-docstring-rgx="^(_|test_|Meta$)"
+no-docstring-rgx = "^(_|test_|Meta$)"
 
 [tool.pylint.messages_control]
 # Line length is enforced by Black, so pylint doesn't need to check it.
@@ -122,15 +118,11 @@ requires = ["poetry_core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.pytest.ini_options]
-testpaths = [
-    "tests"
-]
+testpaths = ["tests"]
 addopts = "-vv --doctest-modules"
 
 [tool.semantic_release]
-version_toml = [
-    "pyproject.toml:tool.poetry.version"
-]
+version_toml = ["pyproject.toml:tool.poetry.version"]
 major_on_zero = false
 branch = "main"
 upload_to_repository = false
