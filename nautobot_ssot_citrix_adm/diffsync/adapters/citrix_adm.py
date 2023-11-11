@@ -3,7 +3,6 @@ from datetime import datetime
 from django.conf import settings
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
-from netutils.ip import netmask_to_cidr
 from nautobot.dcim.models import Device, Interface
 from nautobot.extras.models import Job
 from nautobot.ipam.models import IPAddress
@@ -187,8 +186,8 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
             nsips = self.conn.get_nsip(adc)
             nsip6s = self.conn.get_nsip6(adc)
 
-            ports = parse_vlan_bindings(vlan_bindings)
-            ports = parse_nsips(nsips, ports)
+            ports = parse_vlan_bindings(vlan_bindings, adc)
+            ports = parse_nsips(nsips, ports, adc)
             ports = parse_nsip6s(nsip6s, ports)
 
             self.adm_device_map[adc["hostname"]]["ports"] = ports
@@ -227,11 +226,13 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
                         _tags = port["tags"] if port.get("tags") else []
                         if len(_tags) > 1:
                             _tags.sort()
+                        _primary = True if "MGMT" in _tags or "MIP" in _tags else False
                         self.load_address(
                             address=f"{port['ipaddress']}/{port['netmask']}",
                             device=adc["hostname"],
                             port=port["port"],
                             tags=_tags,
+                            primary=_primary,
                         )
 
     def add_port(
