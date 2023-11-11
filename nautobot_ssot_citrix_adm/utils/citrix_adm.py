@@ -2,7 +2,7 @@
 import re
 from typing import List, Union, Optional, Tuple
 import requests
-from netutils.ip import netmask_to_cidr, is_ip_within
+from netutils.ip import netmask_to_cidr, is_ip_within, ipaddress_interface
 
 
 # based on client found at https://github.com/slauger/python-nitro
@@ -134,7 +134,7 @@ class CitrixNitroClient:
             return result[objecttype]
         self.log.log_failure(message="Error getting devices from Citrix ADM.")
         return {}
-    
+
     def get_nsip(self, adc):
         """Gather all nsip addresses from ADC instance using ADM as proxy."""
         endpoint = "config"
@@ -213,70 +213,95 @@ def parse_hostname_for_role(hostname_map: List[Tuple[str, str]], device_hostname
     return device_role
 
 
-def parse_vlan_bindings(vlan_bindings: List[dict]) -> List[dict]:
+def parse_vlan_bindings(vlan_bindings: List[dict], adc: dict) -> List[dict]:
     """Parses output from get_vlan_bindings() into a list of ports and bound addresses.
-    
+
     Args:
-        vlan_bindings: Output from get_vlan_bindings().
+        vlan_bindings (List[dict]): Output from get_vlan_bindings().
+        adc (dict): ADC device to parse bindings for.
 
     Returns:
         List[dict]: List of ports and bound addresses.
     """
     ports = []
     for binding in vlan_bindings:
-        if binding.get("vlan_nsip_binding"):
-            for nsip in binding["vlan_nsip_binding"]:
-                vlan = nsip["id"]
-                ipaddress = nsip["ipaddress"]
-                netmask = netmask_to_cidr(nsip["netmask"])
-                port = binding["vlan_port_binding"][0]["ifnum"]
-                record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
-                ports.append(record)
-        if binding.get("vlan_nsip6_binding"):
-            for nsip6 in binding["vlan_nsip6_binding"]:
-                vlan = nsip6["id"]
-                ipaddress, netmask = nsip6["ipaddress"].split("/")
-                port = binding["vlan_port_binding"][0]["ifnum"]
-                record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
-                ports.append(record)
-                
+        if binding.get("vlan_interface_binding"):
+            for interface in binding["vlan_interface_binding"]:
+                # account for NSVLAN not configured
+                if interface["id"] == "1":
+                    if interface["ifnum"] != "LO/1":
+                        port = interface["ifnum"]
+                        netmask = netmask_to_cidr(adc["netmask"])
+                        ipaddress = adc["ip_address"]
+                        nsip = {"vlan": "1", "ipaddress": ipaddress, "netmask": netmask, "port": port, "version": 4}
+                        ports.append(nsip)
+            if binding.get("vlan_nsip_binding"):
+                for nsip in binding["vlan_nsip_binding"]:
+                    vlan = nsip["id"]
+                    ipaddress = nsip["ipaddress"]
+                    netmask = netmask_to_cidr(nsip["netmask"])
+                    port = binding["vlan_interface_binding"][0]["ifnum"]
+                    record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port, "version": 4}
+                    ports.append(record)
+            if binding.get("vlan_nsip6_binding"):
+                for nsip6 in binding["vlan_nsip6_binding"]:
+                    vlan = nsip6["id"]
+                    ipaddress, netmask = nsip6["ipaddress"].split("/")
+                    port = binding["vlan_interface_binding"][0]["ifnum"]
+                    record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port, "version": 6}
+                    ports.append(record)
     return ports
 
 
-def parse_nsips(nsips : List[dict], ports : List[dict]) -> List[dict]:
-    """Parse Netscaler IPv4 Addresses
+def parse_nsips(nsips: List[dict], ports: List[dict], adc: dict) -> List[dict]:
+    """Parse Netscaler IPv4 Addresses.
+
     Args:
         nsips (List[dict]): Output from get_nsips().
         ports (List[dict]): Output from get_vlan_bindings().
-    
+        adc (dict): ADC device to parse bindings for.
+
     Returns:
         List[dict]: List of ports and bound addresses.
     """
     for nsip in nsips:
         if nsip["type"] == "NSIP":
+            # add tag to NSIP
             for port in ports:
-                # add a tag to existing record
                 if port["ipaddress"] == nsip["ipaddress"]:
                     port["tags"] = ["NSIP"]
                     break
-        if nsip["type"] == "SNIP":
+        elif nsip["type"] in ["SNIP", "MIP"]:
             for port in ports:
-                # skip if already found
+                # stop if already found
                 if port["ipaddress"] == nsip["ipaddress"]:
                     break
-                # compare SNIP to bound addresses to determine port
-                if is_ip_within(nsip["ipaddress"], f"{port['ipaddress']}/{port['netmask']}"):
-                    port = port["port"]
+                # don't compare to ipv6 addresses
+                if port["version"] == 6:
+                    continue
+                # compare network to determine port
+                network = str(ipaddress_interface(f"{port['ipaddress']}/{port['netmask']}", "network"))
+                if is_ip_within(nsip["ipaddress"], network):
                     vlan = port["vlan"]
                     ipaddress = nsip["ipaddress"]
                     netmask = netmask_to_cidr(nsip["netmask"])
-                    record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
+                    _tags = ["MGMT"] if nsip["ipaddress"] == adc["mgmt_ip_address"] else []
+                    if nsip["type"] == "MIP":
+                        _tags = ["MIP"]
+                    record = {
+                        "vlan": vlan,
+                        "ipaddress": ipaddress,
+                        "netmask": netmask,
+                        "port": port["port"],
+                        "version": 4,
+                        "tags": _tags,
+                    }
                     ports.append(record)
     return ports
 
 
-def parse_nsip6s(nsip6s : List[dict], ports : List[dict]) -> List[dict]:
-    """Parse Netscaler IPv6 Addresses
+def parse_nsip6s(nsip6s: List[dict], ports: List[dict]) -> List[dict]:
+    """Parse Netscaler IPv6 Addresses.
 
     Args:
         nsip6s (List[dict]): Output from get_nsip6s().
@@ -294,4 +319,3 @@ def parse_nsip6s(nsip6s : List[dict], ports : List[dict]) -> List[dict]:
             ports.append(record)
 
     return ports
-
