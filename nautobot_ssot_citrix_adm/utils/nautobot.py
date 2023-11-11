@@ -1,5 +1,5 @@
 """Utility functions for working with Nautobot."""
-from typing import List, OrderedDict
+from typing import List
 from uuid import UUID
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import Device, Platform

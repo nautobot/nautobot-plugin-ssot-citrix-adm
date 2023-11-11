@@ -3,7 +3,6 @@ from datetime import datetime
 from django.conf import settings
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
-from netutils.ip import netmask_to_cidr
 from nautobot.dcim.models import Device, Interface
 from nautobot.extras.models import Job
 from nautobot.ipam.models import IPAddress
@@ -132,7 +131,8 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
         try:
             found_site = self.get(self.datacenter, {"name": site_info.get("name"), "region": site_info.get("region")})
             if found_site:
-                self.job.log_warning(message=f"Duplicate Site attempting to be loaded: {site_info}.")
+                if self.job.kwargs.get("debug"):
+                    self.job.log_warning(message=f"Duplicate Site attempting to be loaded: {site_info}.")
         except ObjectNotFound:
             if self.job.kwargs.get("debug"):
                 self.job.log_info(message=f"Attempting to load DC: {site_info['name']}")
@@ -175,20 +175,6 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
                 )
                 self.add(new_dev)
                 self.adm_device_map[dev["hostname"]] = dev
-                if dev.get("mgmt_ip_address"):
-                    address = f"{dev['mgmt_ip_address']}/{netmask_to_cidr(netmask=dev['netmask'])}"
-                    try:
-                        _ = self.get(self.port, {"name": "Management", "device": dev["hostname"], "port": "Management"})
-                    except ObjectNotFound:
-                        mgmt_port = self.add_port(dev_name=dev["hostname"])
-                        new_dev.add_child(mgmt_port)
-                        try:
-                            _ = self.get(
-                                self.address,
-                                {"address": address, "device": dev["hostname"], "port": "Management"},
-                            )
-                        except ObjectNotFound:
-                            self.load_address(address=address, device=dev["hostname"], port="Management", primary=True)
 
     def create_port_map(self):
         """Create a port/vlan/IP mapping for each ADC instance."""
@@ -198,8 +184,8 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
             nsips = self.conn.get_nsip(adc)
             nsip6s = self.conn.get_nsip6(adc)
 
-            ports = parse_vlan_bindings(vlan_bindings)
-            ports = parse_nsips(nsips, ports)
+            ports = parse_vlan_bindings(vlan_bindings, adc)
+            ports = parse_nsips(nsips, ports, adc)
             ports = parse_nsip6s(nsip6s, ports)
 
             self.adm_device_map[adc["hostname"]]["ports"] = ports
@@ -238,11 +224,13 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
                         _tags = port["tags"] if port.get("tags") else []
                         if len(_tags) > 1:
                             _tags.sort()
+                        _primary = True if "MGMT" in _tags or "MIP" in _tags else False
                         self.load_address(
                             address=f"{port['ipaddress']}/{port['netmask']}",
                             device=adc["hostname"],
                             port=port["port"],
                             tags=_tags,
+                            primary=_primary,
                         )
 
     def add_port(
@@ -269,7 +257,7 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
         self.add(new_port)
         return new_port
 
-    def load_address(self, address: str, device: str, port: str, primary: bool = False):
+    def load_address(self, address: str, device: str, port: str, primary: bool = False, tags: list = []):
         """Load CitrixAdmAddress DiffSync model with specified data.
 
         Args:
@@ -277,14 +265,10 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
             device (str): Device that IP resides on.
             port (str): Interface that IP is configured on.
             primary (str): Whether the IP is primary IP for assigned device. Defaults to False.
+            tags (list): List of tags assigned to IP. Defaults to [].
         """
         new_addr = self.address(
-            address=address,
-            device=device,
-            port=port,
-            primary=primary,
-            tenant=self.tenant,
-            uuid=None,
+            address=address, device=device, port=port, primary=primary, tenant=self.tenant, uuid=None, tags=tags
         )
         self.add(new_addr)
 
