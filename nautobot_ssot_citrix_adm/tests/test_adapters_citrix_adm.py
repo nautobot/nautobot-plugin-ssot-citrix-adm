@@ -98,7 +98,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
     def test_load_ports(self):
         """Test the Nautobot SSoT Citrix ADM load_ports() function."""
         self.citrix_adm.adm_device_map = ADM_DEVICE_MAP_FIXTURE
-        self.citrix_adm.get = MagicMock() 
+        self.citrix_adm.get = MagicMock()
         self.citrix_adm.get.side_effect = [ObjectNotFound, MagicMock(), ObjectNotFound, MagicMock()]
         self.citrix_adm.load_ports()
         expected_ports = {
@@ -127,7 +127,6 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
         ]
         actual_addrs = [addr.get_unique_id() for addr in self.citrix_adm.get_all("address")]
         self.assertEqual(sorted(expected_addrs), sorted(actual_addrs))
-
 
     def test_label_imported_objects_not_found(self):
         """Validate the label_imported_objects() handling ObjectNotFound."""
