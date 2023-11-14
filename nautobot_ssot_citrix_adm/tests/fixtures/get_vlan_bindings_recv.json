@@ -5,12 +5,6 @@
             "vlan_interface_binding": [
                 {
                     "id": "1",
-                    "ifnum": "10/1",
-                    "tagged": false,
-                    "stateflag": "4"
-                },
-                {
-                    "id": "1",
                     "ifnum": "LO/1",
                     "tagged": false,
                     "stateflag": "4"
@@ -30,8 +24,8 @@
             "vlan_nsip_binding": [
                 {
                     "id": "80",
-                    "ipaddress": "192.168.1.1",
-                    "netmask": "255.255.255.240",
+                    "ipaddress": "192.168.0.1",
+                    "netmask": "255.255.255.0",
                     "td": "0",
                     "stateflag": "1",
                     "ownergroup": ""
