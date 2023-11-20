@@ -240,15 +240,6 @@ def parse_vlan_bindings(vlan_bindings: List[dict], adc: dict) -> List[dict]:
     ports = []
     for binding in vlan_bindings:
         if binding.get("vlan_interface_binding"):
-            for interface in binding["vlan_interface_binding"]:
-                # account for NSVLAN not configured
-                if interface["id"] == "1":
-                    if interface["ifnum"] != "LO/1":
-                        port = interface["ifnum"]
-                        netmask = netmask_to_cidr(adc["netmask"])
-                        ipaddress = adc["ip_address"]
-                        nsip = {"vlan": "1", "ipaddress": ipaddress, "netmask": netmask, "port": port, "version": 4}
-                        ports.append(nsip)
             if binding.get("vlan_nsip_binding"):
                 for nsip in binding["vlan_nsip_binding"]:
                     vlan = nsip["id"]
@@ -264,6 +255,16 @@ def parse_vlan_bindings(vlan_bindings: List[dict], adc: dict) -> List[dict]:
                     port = binding["vlan_interface_binding"][0]["ifnum"]
                     record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port, "version": 6}
                     ports.append(record)
+            for interface in binding["vlan_interface_binding"]:
+                # account for NSIP being in vlan 1 which won't show in vlan_nsip_binding
+                if interface["id"] == "1" and interface["ifnum"] != "LO/1":
+                    ports_dict = {port['ipaddress']: port for port in ports}
+                    if adc["ip_address"] not in ports_dict:
+                        port = interface["ifnum"]
+                        netmask = netmask_to_cidr(adc["netmask"])
+                        ipaddress = adc["ip_address"]
+                        nsip = {"vlan": "1", "ipaddress": ipaddress, "netmask": netmask, "port": port, "version": 4}
+                        ports.append(nsip)
     return ports
 
 
