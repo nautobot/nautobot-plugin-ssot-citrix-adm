@@ -37,6 +37,7 @@ class Device(DiffSyncModel):
         "status",
         "tenant",
         "version",
+        "hanode",
     )
     _children = {"port": "ports"}
 
@@ -49,6 +50,7 @@ class Device(DiffSyncModel):
     tenant: Optional[str]
     version: Optional[str]
     ports: Optional[List["Port"]] = []
+    hanode: Optional[str]
 
     uuid: Optional[UUID]
 

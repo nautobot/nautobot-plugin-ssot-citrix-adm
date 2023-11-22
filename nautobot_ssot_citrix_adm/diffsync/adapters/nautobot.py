@@ -66,6 +66,7 @@ class NautobotAdapter(DiffSync):
         ):
             self.job.log_info(message=f"Loading Device {dev.name} from Nautobot.")
             version = dev._custom_field_data["os_version"]
+            hanode = dev._custom_field_data.get("ha_node")
             if LIFECYCLE_MGMT:
                 try:
                     software_relation = Relationship.objects.get(slug="device_soft")
@@ -86,6 +87,7 @@ class NautobotAdapter(DiffSync):
                 tenant=dev.tenant.name if dev.tenant else "",
                 version=version,
                 uuid=dev.id,
+                hanode=hanode
             )
             self.add(new_dev)
 

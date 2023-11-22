@@ -172,6 +172,7 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
                     tenant=self.tenant,
                     version=parse_version(dev["version"]),
                     uuid=None,
+                    hanode=dev["ha_ip_address"]
                 )
                 self.add(new_dev)
                 self.adm_device_map[dev["hostname"]] = dev
