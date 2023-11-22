@@ -127,7 +127,7 @@ class CitrixNitroClient:
         endpoint = "config"
         objecttype = "managed_device"
         params = {
-            "attrs": "ip_address,hostname,gateway,mgmt_ip_address,description,serialnumber,type,display_name,netmask,datacenter_id,version,instance_state"
+            "attrs": "ip_address,hostname,gateway,mgmt_ip_address,description,serialnumber,type,display_name,netmask,datacenter_id,version,instance_state,ha_ip_address"
         }
         result = self.request("GET", endpoint, objecttype, params=params)
         if result:

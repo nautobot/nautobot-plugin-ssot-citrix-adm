@@ -77,6 +77,8 @@ class NautobotDevice(Device):
             if LIFECYCLE_MGMT:
                 lcm_obj = add_software_lcm(diffsync=diffsync, platform="netscaler", version=attrs["version"])
                 assign_version_to_device(diffsync=diffsync, device=new_device, software_lcm=lcm_obj)
+        if attrs.get("hanode"):
+            new_device.custom_field_data["ha_node"] = attrs["hanode"]
         new_device.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
@@ -105,6 +107,8 @@ class NautobotDevice(Device):
             if LIFECYCLE_MGMT:
                 lcm_obj = add_software_lcm(diffsync=self.diffsync, platform="netscaler", version=attrs["version"])
                 assign_version_to_device(diffsync=self.diffsync, device=device, software_lcm=lcm_obj)
+        if "hanode" in attrs:
+            device.custom_field_data["ha_node"] = attrs["hanode"]
         device.validated_save()
         return super().update(attrs)
 
