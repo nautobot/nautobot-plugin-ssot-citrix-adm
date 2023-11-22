@@ -186,7 +186,7 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
             nsips = self.conn.get_nsip(adc)
             nsip6s = self.conn.get_nsip6(adc)
 
-            ports = parse_vlan_bindings(vlan_bindings, adc)
+            ports = parse_vlan_bindings(vlan_bindings, adc, self.job)
             ports = parse_nsips(nsips, ports, adc)
             ports = parse_nsip6s(nsip6s, ports)
 
