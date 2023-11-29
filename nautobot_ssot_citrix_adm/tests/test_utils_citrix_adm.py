@@ -240,8 +240,8 @@ class TestCitrixAdmClient(TestCase):
     def test_parse_vlan_bindings(self):
         """Validate functionality of the parse_vlan_bindings function."""
         vlan_bindings = VLAN_FIXTURE_RECV[0]
-        adc = MagicMock()
-        actual = parse_vlan_bindings(vlan_bindings=vlan_bindings, adc=adc)
+        adc = {"hostname": "test", "ip_address": "192.168.0.1", "netmask": "255.255.255.0"}
+        actual = parse_vlan_bindings(vlan_bindings=vlan_bindings, adc=adc, job=self)
         expected = [{"ipaddress": "192.168.0.1", "netmask": 24, "port": "10/1", "version": 4, "vlan": "80"}]
         self.assertEqual(actual, expected)
 
