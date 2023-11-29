@@ -43,19 +43,22 @@ class CitrixAdmDataSource(DataSource, Job):
 
     def load_source_adapter(self):
         """Load data from Citrix ADM into DiffSync models."""
-        client = CitrixNitroClient(
-            base_url=PLUGIN_CFG["base_url"],
-            user=PLUGIN_CFG["username"],
-            password=PLUGIN_CFG["password"],
-            verify=PLUGIN_CFG["verify"],
-            logger=self,
-        )
-        client.login()
-        self.source_adapter = citrix_adm.CitrixAdmAdapter(
-            job=self, sync=self.sync, client=client, tenant=PLUGIN_CFG.get("tenant")
-        )
-        self.source_adapter.load()
-        client.logout()
+        base_urls = [PLUGIN_CFG["base_url"], PLUGIN_CFG["additional_url"]]
+        for url in base_urls:
+            breakpoint()
+            client = CitrixNitroClient(
+                base_url=url,
+                user=PLUGIN_CFG["username"],
+                password=PLUGIN_CFG["password"],
+                verify=PLUGIN_CFG["verify"],
+                logger=self,
+            )
+            client.login()
+            self.source_adapter = citrix_adm.CitrixAdmAdapter(
+                job=self, sync=self.sync, client=client, tenant=PLUGIN_CFG.get("tenant")
+            )
+            self.source_adapter.load()
+            client.logout()
 
     def load_target_adapter(self):
         """Load data from Nautobot into DiffSync models."""

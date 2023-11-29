@@ -142,6 +142,7 @@ PLUGINS_CONFIG = {
     },
     "nautobot_ssot_citrix_adm": {
         "base_url": os.getenv("NAUTOBOT_SSOT_CITRIX_BASE_URL", ""),
+        "additional_url": os.getenv("NAUTOBOT_SSOT_CITRIX_ADDITIONAL_URL", ""),
         "username": os.getenv("NAUTOBOT_SSOT_CITRIX_USERNAME", ""),
         "password": os.getenv("NAUTOBOT_SSOT_CITRIX_PASSWORD", ""),
         "verify": is_truthy(os.getenv("NAUTOBOT_SSOT_CITRIX_VERIFY", True)),
