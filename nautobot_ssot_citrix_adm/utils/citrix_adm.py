@@ -253,7 +253,7 @@ def parse_vlan_bindings(vlan_bindings: List[dict], adc: dict, job) -> List[dict]
 
     # Account for NSIP in VLAN 1 which is not returned by get_vlan_bindings()
     if vlan_bindings:
-        ports_dict = {port['ipaddress']: port for port in ports}
+        ports_dict = {port["ipaddress"]: port for port in ports}
         if adc["ip_address"] not in ports_dict:
             port = vlan_bindings[0]["vlan_interface_binding"][0]["ifnum"]
             netmask = netmask_to_cidr(adc["netmask"])
@@ -275,21 +275,21 @@ def parse_nsips(nsips: List[dict], ports: List[dict], adc: dict) -> List[dict]:
                 if nsip["type"] == "NSIP":
                     port["tags"] = ["NSIP"]
                 break
-            else:
-                if nsip["type"] in ["SNIP", "MIP"] and port["version"] != 6:
-                    network = str(ipaddress_interface(f"{port['ipaddress']}/{port['netmask']}", "network"))
-                    if is_ip_within(nsip["ipaddress"], network):
-                        _tags = ["MGMT"] if nsip["ipaddress"] == adc["mgmt_ip_address"] else []
-                        _tags = ["MIP"] if nsip["type"] == "MIP" else _tags
-                        record = {
-                            "vlan": port["vlan"],
-                            "ipaddress": nsip["ipaddress"],
-                            "netmask": netmask_to_cidr(nsip["netmask"]),
-                            "port": port["port"],
-                            "version": 4,
-                            "tags": _tags,
-                        }
-                        ports.append(record)
+
+            if nsip["type"] in ["SNIP", "MIP"] and port["version"] != 6:
+                network = str(ipaddress_interface(f"{port['ipaddress']}/{port['netmask']}", "network"))
+                if is_ip_within(nsip["ipaddress"], network):
+                    _tags = ["MGMT"] if nsip["ipaddress"] == adc["mgmt_ip_address"] else []
+                    _tags = ["MIP"] if nsip["type"] == "MIP" else _tags
+                    record = {
+                        "vlan": port["vlan"],
+                        "ipaddress": nsip["ipaddress"],
+                        "netmask": netmask_to_cidr(nsip["netmask"]),
+                        "port": port["port"],
+                        "version": 4,
+                        "tags": _tags,
+                    }
+                    ports.append(record)
     return ports
 
 

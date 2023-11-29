@@ -172,7 +172,7 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
                     tenant=self.tenant,
                     version=parse_version(dev["version"]),
                     uuid=None,
-                    hanode=dev["ha_ip_address"]
+                    hanode=dev["ha_ip_address"],
                 )
                 self.add(new_dev)
                 self.adm_device_map[dev["hostname"]] = dev
@@ -277,8 +277,18 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
 
     def load(self):
         """Load data from Citrix ADM into DiffSync models."""
-        self.create_site_map()
-        self.load_devices()
-        self.create_port_map()
-        self.load_ports()
-        self.load_addresses()
+        base_urls = [PLUGIN_CFG["base_url"], PLUGIN_CFG["additional_url"]]
+        for url in base_urls:
+            # init
+            self.conn.url = url
+            self.conn.login()
+            self.adm_site_map = {}
+            self.adm_device_map = {}
+
+            self.create_site_map()
+            self.load_devices()
+            self.create_port_map()
+            self.load_ports()
+            self.load_addresses()
+
+            self.conn.logout()

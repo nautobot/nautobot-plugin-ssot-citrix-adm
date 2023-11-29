@@ -87,7 +87,7 @@ class NautobotAdapter(DiffSync):
                 tenant=dev.tenant.name if dev.tenant else "",
                 version=version,
                 uuid=dev.id,
-                hanode=hanode
+                hanode=hanode,
             )
             self.add(new_dev)
 
