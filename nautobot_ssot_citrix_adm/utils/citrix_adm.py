@@ -44,9 +44,7 @@ class CitrixNitroClient:
             session_id = response["login"][0]["sessionid"]
             self.headers["Cookie"] = f"SESSID={session_id}; path=/; SameSite=Lax; secure; HttpOnly"
         else:
-            self.log.log_failure(
-                message="Error while logging into Citrix ADM. Please validate your configuration is correct."
-            )
+            self.log.logger.error("Error while logging into Citrix ADM. Please validate your configuration is correct.")
             raise requests.exceptions.RequestException()
 
     def logout(self):
@@ -108,24 +106,24 @@ class CitrixNitroClient:
             _result = _result.json()
             if _result.get("errorcode") == 0:
                 return _result
-            self.log.log_warning(message=f"Failure with request: {_result['message']}")
+            self.log.logger.warning(f"Failure with request: {_result['message']}")
         return {}
 
     def get_sites(self):
         """Gather all sites configured on MAS/ADM instance."""
-        self.log.log_info(message="Getting sites from Citrix ADM.")
+        self.log.logger.info("Getting sites from Citrix ADM.")
         endpoint = "config"
         objecttype = "mps_datacenter"
         params = {"attrs": "city,zipcode,type,name,region,country,latitude,longitude,id"}
         result = self.request("GET", endpoint, objecttype, params=params)
         if result:
             return result[objecttype]
-        self.log.log_failure(message="Error getting sites from Citrix ADM.")
+        self.log.logger.error("Error getting sites from Citrix ADM.")
         return {}
 
     def get_devices(self):
         """Gather all devices registered to MAS/ADM instance."""
-        self.log.log_info(message="Getting devices from Citrix ADM.")
+        self.log.logger.info("Getting devices from Citrix ADM.")
         endpoint = "config"
         objecttype = "managed_device"
         params = {
@@ -134,7 +132,21 @@ class CitrixNitroClient:
         result = self.request("GET", endpoint, objecttype, params=params)
         if result:
             return result[objecttype]
-        self.log.log_failure(message="Error getting devices from Citrix ADM.")
+        self.log.logger.error("Error getting devices from Citrix ADM.")
+        return {}
+
+    def get_nsip(self, adc):
+        """Gather all nsip addresses from ADC instance using ADM as proxy."""
+        endpoint = "config"
+        objecttype = "nsip"
+        params = {}
+        self.headers["_MPS_API_PROXY_MANAGED_INSTANCE_USERNAME"] = self.username
+        self.headers["_MPS_API_PROXY_MANAGED_INSTANCE_PASSWORD"] = self.password
+        self.headers["_MPS_API_PROXY_MANAGED_INSTANCE_IP"] = adc["ip_address"]
+        result = self.request("GET", endpoint, objecttype, params=params)
+        if result:
+            return result[objecttype]
+        self.log.log_warning(message=f"Error getting nsip from {adc['hostname']}")
         return {}
 
     def get_nsip(self, adc):
@@ -162,7 +174,7 @@ class CitrixNitroClient:
         result = self.request("GET", endpoint, objecttype, params=params)
         if result:
             return result[objecttype]
-        self.log.log_warning(message=f"Error getting nsip6 from {adc['hostname']}")
+        self.log.logger.warning(f"Error getting nsip6 from {adc['hostname']}")
 
         return {}
 
@@ -177,7 +189,7 @@ class CitrixNitroClient:
         result = self.request("GET", endpoint, objecttype, params=params)
         if result:
             return result[objecttype]
-        self.log.log_warning(message=f"Error getting vlan bindings from {adc['hostname']}")
+        self.log.logger.warning(f"Error getting vlan bindings from {adc['hostname']}")
 
         return {}
 

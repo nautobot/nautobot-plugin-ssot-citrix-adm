@@ -48,8 +48,7 @@ class NautobotAdapter(DiffSync):
 
     def load_sites(self):
         """Load Sites from Nautobot into DiffSync models."""
-        for site in Site.objects.all():
-            self.job.log_info(message=f"Loading Site {site.name} from Nautobot.")
+            self.job.logger.info(f"Loading Site {site.name} from Nautobot.")
             new_dc = self.datacenter(
                 name=site.name,
                 region=site.region.name if site.region else "",
@@ -64,7 +63,7 @@ class NautobotAdapter(DiffSync):
         for dev in OrmDevice.objects.select_related("device_type", "site", "status").filter(
             _custom_field_data__system_of_record="Citrix ADM"
         ):
-            self.job.log_info(message=f"Loading Device {dev.name} from Nautobot.")
+            self.job.logger.info(f"Loading Device {dev.name} from Nautobot.")
             version = dev._custom_field_data["os_version"]
             hanode = dev._custom_field_data.get("ha_node")
             if LIFECYCLE_MGMT:
@@ -75,7 +74,7 @@ class NautobotAdapter(DiffSync):
                     )
                     version = relationship.source.version
                 except RelationshipAssociation.DoesNotExist:
-                    self.job.log_info(message=f"Unable to find DLC Software version for {dev.name}.")
+                    self.job.logger.info(f"Unable to find DLC Software version for {dev.name}.")
                     version = ""
             new_dev = self.device(
                 name=dev.name,
@@ -108,8 +107,8 @@ class NautobotAdapter(DiffSync):
                 self.add(new_intf)
                 dev.add_child(new_intf)
             except ObjectNotFound:
-                self.job.log_warning(
-                    message=f"Unable to find {intf.device.name} loaded so skipping loading port {intf.name}."
+                self.job.logger.warning(
+                    f"Unable to find {intf.device.name} loaded so skipping loading port {intf.name}."
                 )
 
     def load_addresses(self):
@@ -146,10 +145,10 @@ class NautobotAdapter(DiffSync):
         for grouping in ["addresses", "ports", "devices"]:
             for nautobot_obj in self.objects_to_delete[grouping]:
                 try:
-                    self.job.log_info(message=f"Deleting {nautobot_obj}.")
+                    self.job.logger.info(f"Deleting {nautobot_obj}.")
                     nautobot_obj.delete()
                 except ProtectedError:
-                    self.job.log_info(message=f"Deletion failed protected object: {nautobot_obj}")
+                    self.job.logger.info(f"Deletion failed protected object: {nautobot_obj}")
             self.objects_to_delete[grouping] = []
         return super().sync_complete(source, diff, *args, **kwargs)
 

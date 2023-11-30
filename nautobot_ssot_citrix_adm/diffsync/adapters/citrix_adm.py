@@ -131,11 +131,10 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
         try:
             found_site = self.get(self.datacenter, {"name": site_info.get("name"), "region": site_info.get("region")})
             if found_site:
-                if self.job.kwargs.get("debug"):
-                    self.job.log_warning(message=f"Duplicate Site attempting to be loaded: {site_info}.")
+                self.job.logger.warning(f"Duplicate Site attempting to be loaded: {site_info}.")
         except ObjectNotFound:
-            if self.job.kwargs.get("debug"):
-                self.job.log_info(message=f"Attempting to load DC: {site_info['name']}")
+            if self.job.debug:
+                self.job.logger.info(f"Attempting to load DC: {site_info['name']}")
             new_site = self.datacenter(
                 name=site_info["name"],
                 region=site_info["region"],
@@ -150,12 +149,12 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
         devices = self.conn.get_devices()
         for dev in devices:
             if not dev.get("hostname"):
-                self.job.log_warning(message=f"Device without hostname will not be loaded. {dev}")
+                self.job.logger.warning(f"Device without hostname will not be loaded. {dev}")
                 continue
             try:
                 found_dev = self.get(self.device, dev["hostname"])
                 if found_dev:
-                    self.job.log_warning(message=f"Duplicate Device attempting to be loaded: {dev['hostname']}")
+                    self.job.logger.warning(f"Duplicate Device attempting to be loaded: {dev['hostname']}")
             except ObjectNotFound:
                 site = self.adm_site_map[dev["datacenter_id"]]
                 self.load_site(site_info=site)
@@ -178,10 +177,8 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
                 self.adm_device_map[dev["hostname"]] = dev
 
     def create_port_map(self):
-        """Create a port/vlan/IP mapping for each ADC instance."""
-        self.job.log_info(message="Retrieving NSIP and port bindings from ADC instances.")
-        """Create a port/vlan/IP mapping for each ADC instance."""
-        self.job.log_info(message="Retrieving NSIP and port bindings from ADC instances.")
+        """Create a port/vlan/ip map for each ADC instance."""
+        self.job.logger.info("Retrieving NSIP and port bindings from ADC instances.")
         for _, adc in self.adm_device_map.items():
             vlan_bindings = self.conn.get_vlan_bindings(adc)
             nsips = self.conn.get_nsip(adc)

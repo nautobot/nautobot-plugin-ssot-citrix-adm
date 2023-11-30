@@ -29,7 +29,7 @@ def add_software_lcm(diffsync, platform: str, version: str):
     try:
         os_ver = SoftwareLCM.objects.get(device_platform=platform, version=version).id
     except SoftwareLCM.DoesNotExist:
-        diffsync.job.log_info(message=f"Creating Version {version} for {platform}.")
+        diffsync.job.logger.info(f"Creating Version {version} for {platform}.")
         os_ver = SoftwareLCM(
             device_platform=platform,
             version=version,
@@ -44,8 +44,8 @@ def assign_version_to_device(diffsync, device: Device, software_lcm: UUID):
     try:
         software_relation = Relationship.objects.get(slug="device_soft")
         relationship = RelationshipAssociation.objects.get(relationship=software_relation, destination_id=device.id)
-        diffsync.job.log_warning(
-            message=f"Deleting Software Version Relationships for {device.name} to assign a new version."
+        diffsync.job.logger.warning(
+            f"Deleting Software Version Relationships for {device.name} to assign a new version."
         )
         relationship.delete()
     except RelationshipAssociation.DoesNotExist:

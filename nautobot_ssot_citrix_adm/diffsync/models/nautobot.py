@@ -40,7 +40,7 @@ class NautobotDatacenter(Datacenter):
     def update(self, attrs):
         """Update Site in Nautobot from NautobotDatacenter object."""
         if not settings.PLUGINS_CONFIG.get("nautobot_ssot_citrix_adm").get("update_sites"):
-            self.diffsync.job.log_warning(message=f"Update sites setting is disabled so skipping updating {self.name}.")
+            self.diffsync.job.logger.warning(f"Update sites setting is disabled so skipping updating {self.name}.")
             return None
         site = Site.objects.get(id=self.uuid)
         if "latitude" in attrs:
@@ -116,7 +116,7 @@ class NautobotDevice(Device):
         """Delete Device in Nautobot from NautobotDevice object."""
         dev = NewDevice.objects.get(id=self.uuid)
         super().delete()
-        self.diffsync.job.log_info(message=f"Deleting Device {dev.name}.")
+        self.diffsync.job.logger.info(f"Deleting Device {dev.name}.")
         self.diffsync.objects_to_delete["devices"].append(dev)
         return self
 
@@ -152,7 +152,7 @@ class NautobotPort(Port):
         """Delete Interface in Nautobot from NautobotPort object."""
         port = Interface.objects.get(id=self.uuid)
         super().delete()
-        self.diffsync.job.log_info(message=f"Deleting Port {port.name} for {port.device.name}.")
+        self.diffsync.job.logger.info(f"Deleting Port {port.name} for {port.device.name}.")
         self.diffsync.objects_to_delete["ports"].append(port)
         return self
 
@@ -210,6 +210,6 @@ class NautobotAddress(Address):
         """Delete IP Address in Nautobot from NautobotAddress object."""
         addr = IPAddress.objects.get(id=self.uuid)
         super().delete()
-        self.diffsync.job.log_info(message=f"Deleting IP Address {self}.")
+        self.diffsync.job.logger.info(f"Deleting IP Address {self}.")
         self.diffsync.objects_to_delete["addresses"].append(addr)
         return self
