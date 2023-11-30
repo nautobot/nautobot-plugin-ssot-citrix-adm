@@ -254,7 +254,7 @@ class TestCitrixAdmClient(TestCase):
             {"ipaddress": "192.168.0.1", "netmask": 24, "tags": ["NSIP"], "port": "10/1", "version": 4, "vlan": "80"},
             {"ipaddress": "192.168.0.2", "netmask": 24, "tags": ["MGMT"], "port": "10/1", "version": 4, "vlan": "80"},
         ]
-        actual = parse_nsips(nsips=nsips, adc=adc, ports=ports, job=self)
+        actual = parse_nsips(nsips=nsips, adc=adc, ports=ports)
         self.assertEqual(actual, expected)
 
     def test_parse_nsip6s(self):
