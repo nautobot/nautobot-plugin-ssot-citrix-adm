@@ -47,6 +47,7 @@ class CitrixNitroClient:
             self.log.log_failure(
                 message="Error while logging into Citrix ADM. Please validate your configuration is correct."
             )
+            raise requests.exceptions.RequestException()
 
     def logout(self):
         """Best practice to logout when session is complete."""
