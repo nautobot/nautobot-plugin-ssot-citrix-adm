@@ -267,7 +267,7 @@ def parse_vlan_bindings(vlan_bindings: List[dict], adc: dict, job) -> List[dict]
     return ports
 
 
-def parse_nsips(nsips: List[dict], ports: List[dict], adc: dict, job) -> List[dict]:
+def parse_nsips(nsips: List[dict], ports: List[dict], adc: dict) -> List[dict]:
     """Parse Netscaler IPv4 Addresses."""
     for nsip in nsips:
         for port in ports:
@@ -290,9 +290,6 @@ def parse_nsips(nsips: List[dict], ports: List[dict], adc: dict, job) -> List[di
                         "tags": _tags,
                     }
                     ports.append(record)
-                else:
-                    if job.kwargs.get("debug"):
-                        job.log_warning(f"{adc['hostname']} : {network} does not have any interface bindings.")
     return ports
 
 
