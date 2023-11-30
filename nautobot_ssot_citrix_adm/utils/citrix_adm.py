@@ -99,6 +99,7 @@ class CitrixNitroClient:
             url=url,
             data=data,
             headers=self.headers,
+            timeout=60,
             verify=self.verify,
         )
         if _result:
