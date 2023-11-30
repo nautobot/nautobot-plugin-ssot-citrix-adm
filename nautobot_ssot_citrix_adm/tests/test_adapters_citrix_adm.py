@@ -15,7 +15,6 @@ from nautobot_ssot_citrix_adm.tests.fixtures import (
     VLAN_FIXTURE_RECV,
     NSIP6_FIXTURE_RECV,
     ADM_DEVICE_MAP_FIXTURE,
-    ADM_DEVICE_MAP_FIXTURE,
 )
 
 
