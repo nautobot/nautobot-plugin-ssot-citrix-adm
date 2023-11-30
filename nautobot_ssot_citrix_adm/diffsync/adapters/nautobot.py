@@ -5,9 +5,9 @@ from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
 from django.db.models import ProtectedError
 from nautobot.dcim.models import Device as OrmDevice
-from nautobot.dcim.models import Interface, Site
+from nautobot.dcim.models import Interface, Location, LocationType
 from nautobot.extras.models import Job, Relationship, RelationshipAssociation
-from nautobot.ipam.models import IPAddress
+from nautobot.ipam.models import IPAddress, IPAddressToInterface
 from nautobot_ssot_citrix_adm.diffsync.models.nautobot import (
     NautobotAddress,
     NautobotDatacenter,
@@ -48,10 +48,12 @@ class NautobotAdapter(DiffSync):
 
     def load_sites(self):
         """Load Sites from Nautobot into DiffSync models."""
+        site_loctype = LocationType.objects.get(name="Site")
+        for site in Location.objects.filter(location_type=site_loctype):
             self.job.logger.info(f"Loading Site {site.name} from Nautobot.")
             new_dc = self.datacenter(
                 name=site.name,
-                region=site.region.name if site.region else "",
+                region=site.parent.name if site.parent else "",
                 latitude=str(site.latitude).rstrip("0"),
                 longitude=str(site.longitude).rstrip("0"),
                 uuid=site.id,
@@ -60,7 +62,7 @@ class NautobotAdapter(DiffSync):
 
     def load_devices(self):
         """Load Devices from Nautobot into DiffSync models."""
-        for dev in OrmDevice.objects.select_related("device_type", "site", "status").filter(
+        for dev in OrmDevice.objects.select_related("device_type", "location", "status").filter(
             _custom_field_data__system_of_record="Citrix ADM"
         ):
             self.job.logger.info(f"Loading Device {dev.name} from Nautobot.")
@@ -68,7 +70,7 @@ class NautobotAdapter(DiffSync):
             hanode = dev._custom_field_data.get("ha_node")
             if LIFECYCLE_MGMT:
                 try:
-                    software_relation = Relationship.objects.get(slug="device_soft")
+                    software_relation = Relationship.objects.get(label="Software on Device")
                     relationship = RelationshipAssociation.objects.get(
                         relationship=software_relation, destination_id=dev.id
                     )
@@ -79,9 +81,9 @@ class NautobotAdapter(DiffSync):
             new_dev = self.device(
                 name=dev.name,
                 model=dev.device_type.model,
-                role=dev.device_role.name,
+                role=dev.role.name,
                 serial=dev.serial,
-                site=dev.site.name,
+                site=dev.location.name,
                 status=dev.status.name,
                 tenant=dev.tenant.name if dev.tenant else "",
                 version=version,
@@ -114,20 +116,23 @@ class NautobotAdapter(DiffSync):
     def load_addresses(self):
         """Load IP Addresses from Nautobot into DiffSync models."""
         for addr in IPAddress.objects.filter(_custom_field_data__system_of_record="Citrix ADM"):
-            if addr.family == 4:
+            if addr.ip_version == 4:
                 primary = hasattr(addr, "primary_ip4_for")
             else:
                 primary = hasattr(addr, "primary_ip6_for")
             new_ip = self.address(
                 address=str(addr.address),
-                device=addr.assigned_object.device.name if addr.assigned_object else "",
-                port=addr.assigned_object.name if addr.assigned_object else "",
+                device="",
+                port="",
                 primary=primary,
                 tenant=addr.tenant.name if addr.tenant else "",
                 uuid=addr.id,
                 tags=nautobot.get_tag_strings(addr.tags),
             )
-            self.add(new_ip)
+            for mapping in IPAddressToInterface.objects.filter(ip_address=addr):
+                new_ip.device = mapping.interface.device.name
+                new_ip.port = mapping.interface.name
+                self.add(new_ip)
 
     def sync_complete(self, source: DiffSync, diff, *args, **kwargs):
         """Label and clean up function for DiffSync sync.

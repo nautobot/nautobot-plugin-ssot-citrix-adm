@@ -2,9 +2,9 @@
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import Device as NewDevice
-from nautobot.dcim.models import Region, Site, DeviceRole, DeviceType, Manufacturer, Interface, Platform
-from nautobot.extras.models import Status
-from nautobot.ipam.models import IPAddress
+from nautobot.dcim.models import DeviceType, Location, LocationType, Manufacturer, Interface, Platform
+from nautobot.extras.models import Role, Status
+from nautobot.ipam.models import IPAddress, IPAddressToInterface
 from nautobot.tenancy.models import Tenant
 from nautobot_ssot_citrix_adm.diffsync.models.base import Datacenter, Device, Port, Address
 from nautobot_ssot_citrix_adm.utils.nautobot import add_software_lcm, assign_version_to_device
@@ -23,17 +23,26 @@ class NautobotDatacenter(Datacenter):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Site in Nautobot from NautobotDatacenter object."""
-        if Site.objects.filter(name=ids["name"]).exists():
-            diffsync.job.log_warning(message=f"Site {ids['name']} already exists so skipping creation.")
+        status_active = Status.objects.get(name="Active")
+        global_region = Location.objects.get_or_create(
+            name="Global", location_type=LocationType.objects.get(name="Region"), status=status_active
+        )[0]
+        site_loctype = LocationType.objects.get(name="Site")
+        if Location.objects.filter(name=ids["name"]).exists():
+            diffsync.job.logger.warning(f"Site {ids['name']} already exists so skipping creation.")
             return None
-        new_site = Site(
+        new_site = Location(
             name=ids["name"],
-            status=Status.objects.get(name="Active"),
+            parent=global_region,
+            status=status_active,
             latitude=attrs["latitude"],
             longitude=attrs["longitude"],
+            location_type=site_loctype,
         )
         if ids.get("region"):
-            new_site.region, _ = Region.objects.get_or_create(name=ids["region"])
+            new_site.parent = Location.objects.get_or_create(
+                name=ids["region"], location_type=LocationType.objects.get(name="Region"), status=status_active
+            )[0]
         new_site.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
@@ -42,7 +51,7 @@ class NautobotDatacenter(Datacenter):
         if not settings.PLUGINS_CONFIG.get("nautobot_ssot_citrix_adm").get("update_sites"):
             self.diffsync.job.logger.warning(f"Update sites setting is disabled so skipping updating {self.name}.")
             return None
-        site = Site.objects.get(id=self.uuid)
+        site = Location.objects.get(id=self.uuid)
         if "latitude" in attrs:
             site.latitude = attrs["latitude"]
         if "longitude" in attrs:
@@ -57,18 +66,20 @@ class NautobotDevice(Device):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create Device in Nautobot from NautobotDevice object."""
-        lb_role, _ = DeviceRole.objects.get_or_create(name=attrs["role"])
+        lb_role, created = Role.objects.get_or_create(name=attrs["role"])
+        if created:
+            lb_role.content_types.add(ContentType.objects.get_for_model(NewDevice))
         lb_dt, _ = DeviceType.objects.get_or_create(
             model=attrs["model"], manufacturer=Manufacturer.objects.get(name="Citrix")
         )
         new_device = NewDevice(
             name=ids["name"],
             status=Status.objects.get(name=attrs["status"]),
-            device_role=lb_role,
-            site=Site.objects.get(name=attrs["site"]),
+            role=lb_role,
+            location=Location.objects.get(name=attrs["site"]),
             device_type=lb_dt,
             serial=attrs["serial"],
-            platform=Platform.objects.get(slug="netscaler"),
+            platform=Platform.objects.get(name="citrix.adc"),
         )
         if attrs.get("tenant"):
             new_device.tenant = Tenant.objects.update_or_create(name=attrs["tenant"])[0]
@@ -92,11 +103,11 @@ class NautobotDevice(Device):
         if "status" in attrs:
             device.status = Status.objects.get(name=attrs["status"])
         if "role" in attrs:
-            device.device_role = DeviceRole.objects.get_or_create(name=attrs["role"])[0]
+            device.role = Role.objects.get_or_create(name=attrs["role"])[0]
         if "serial" in attrs:
             device.serial = attrs["serial"]
         if "site" in attrs:
-            device.site = Site.objects.get(name=attrs["site"])
+            device.location = Location.objects.get(name=attrs["site"])
         if "tenant" in attrs:
             if attrs.get("tenant"):
                 device.tenant = Tenant.objects.update_or_create(name=attrs["tenant"])[0]
@@ -168,16 +179,15 @@ class NautobotAddress(Address):
         new_ip = IPAddress(
             address=ids["address"],
             status=Status.objects.get(name="Active"),
-            assigned_object_type=ContentType.objects.get_for_model(Interface),
-            assigned_object_id=interface.id,
         )
         if attrs.get("tenant"):
             new_ip.tenant = Tenant.objects.update_or_create(name=attrs["tenant"])[0]
         if attrs.get("tags"):
             new_ip.tags.set(attrs["tags"])
         new_ip.validated_save()
+        IPAddressToInterface.objects.create(ip_address=new_ip, interface=interface)
         if attrs.get("primary"):
-            if new_ip.family == 4:
+            if new_ip.ip_version == 4:
                 device.primary_ip4 = new_ip
             else:
                 device.primary_ip6 = new_ip
@@ -188,8 +198,8 @@ class NautobotAddress(Address):
         """Update IP Address in Nautobot from NautobotAddress object."""
         addr = IPAddress.objects.get(id=self.uuid)
         if "primary" in attrs:
-            device = addr.assigned_object.device
-            if addr.family == 4:
+            device = NewDevice.objects.get(name=self.device)
+            if addr.ip_version == 4:
                 device.primary_ip4 = addr
             else:
                 device.primary_ip6 = addr
