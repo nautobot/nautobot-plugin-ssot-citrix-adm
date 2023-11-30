@@ -102,12 +102,13 @@ class CitrixNitroClient:
             headers=self.headers,
             verify=self.verify,
         )
-        try:
+        if _result:
             _result.raise_for_status()
-            return _result.json()
-        except requests.exceptions.HTTPError as err:
-            self.log.log_warning(message=f"Failure with request: {err}")
-            return {}
+            _result = _result.json()
+            if _result.get("errorcode") == 0:
+                return _result
+            self.log.log_warning(message=f"Failure with request: {_result['message']}")
+        return {}
 
     def get_sites(self):
         """Gather all sites configured on MAS/ADM instance."""
