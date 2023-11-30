@@ -11,15 +11,16 @@ def nautobot_database_ready_callback(sender, *, apps, **kwargs):  # pylint: disa
     ContentType = apps.get_model("contenttypes", "ContentType")
     CustomField = apps.get_model("extras", "CustomField")
     Manufacturer = apps.get_model("dcim", "Manufacturer")
+    LocationType = apps.get_model("dcim", "LocationType")
     Device = apps.get_model("dcim", "Device")
     Interface = apps.get_model("dcim", "Interface")
     IPAddress = apps.get_model("ipam", "IPAddress")
     Platform = apps.get_model("dcim", "Platform")
 
-    citrix_manu, _ = Manufacturer.objects.update_or_create(name="Citrix", slug="citrix")
-    Platform.objects.update_or_create(
-        name="citrix.adc", slug="netscaler", napalm_driver="netscaler", manufacturer_id=citrix_manu.id
-    )
+    region = LocationType.objects.update_or_create(name="Region", defaults={"nestable": True})[0]
+    site = LocationType.objects.update_or_create(name="Site", defaults={"parent": region})[0]
+    site.content_types.add(ContentType.objects.get_for_model(Device))
+
     ha_node_cf_dict = {
         "name": "ha_node",
         "slug": "ha_node",
