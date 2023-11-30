@@ -1,4 +1,5 @@
 """Nautobot DiffSync models for Citrix ADM SSoT."""
+from datetime import datetime
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import Device as NewDevice
@@ -90,6 +91,8 @@ class NautobotDevice(Device):
                 assign_version_to_device(diffsync=diffsync, device=new_device, software_lcm=lcm_obj)
         if attrs.get("hanode"):
             new_device.custom_field_data["ha_node"] = attrs["hanode"]
+        new_device.custom_field_data["system_of_record"] = "Citrix ADM"
+        new_device.custom_field_data["ssot_last_synchronized"] = datetime.today().date().isoformat()
         new_device.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
@@ -120,6 +123,8 @@ class NautobotDevice(Device):
                 assign_version_to_device(diffsync=self.diffsync, device=device, software_lcm=lcm_obj)
         if "hanode" in attrs:
             device.custom_field_data["ha_node"] = attrs["hanode"]
+        device.custom_field_data["system_of_record"] = "Citrix ADM"
+        device.custom_field_data["ssot_last_synchronized"] = datetime.today().date().isoformat()
         device.validated_save()
         return super().update(attrs)
 
@@ -146,6 +151,8 @@ class NautobotPort(Port):
             type="virtual",
             mgmt_only=bool(ids["name"] == "Management"),
         )
+        new_port.custom_field_data["system_of_record"] = "Citrix ADM"
+        new_port.custom_field_data["ssot_last_synchronized"] = datetime.today().date().isoformat()
         new_port.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
@@ -156,6 +163,8 @@ class NautobotPort(Port):
             port.status = Status.objects.get(name=attrs["status"])
         if "description" in attrs:
             port.description = attrs["description"]
+        port.custom_field_data["system_of_record"] = "Citrix ADM"
+        port.custom_field_data["ssot_last_synchronized"] = datetime.today().date().isoformat()
         port.validated_save()
         return super().update(attrs)
 
@@ -184,6 +193,8 @@ class NautobotAddress(Address):
             new_ip.tenant = Tenant.objects.update_or_create(name=attrs["tenant"])[0]
         if attrs.get("tags"):
             new_ip.tags.set(attrs["tags"])
+        new_ip.custom_field_data["system_of_record"] = "Citrix ADM"
+        new_ip.custom_field_data["ssot_last_synchronized"] = datetime.today().date().isoformat()
         new_ip.validated_save()
         IPAddressToInterface.objects.create(ip_address=new_ip, interface=interface)
         if attrs.get("primary"):
@@ -213,6 +224,8 @@ class NautobotAddress(Address):
             addr.tags.set(attrs["tags"])
         else:
             addr.tags.clear()
+        addr.custom_field_data["system_of_record"] = "Citrix ADM"
+        addr.custom_field_data["ssot_last_synchronized"] = datetime.today().date().isoformat()
         addr.validated_save()
         return super().update(attrs)
 

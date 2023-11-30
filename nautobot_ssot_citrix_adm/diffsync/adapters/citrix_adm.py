@@ -1,11 +1,8 @@
 """Nautobot SSoT Citrix ADM Adapter for Citrix ADM SSoT plugin."""
-from datetime import datetime
 from django.conf import settings
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
-from nautobot.dcim.models import Device, Interface
 from nautobot.extras.models import Job
-from nautobot.ipam.models import IPAddress
 from nautobot_ssot_citrix_adm.constants import DEVICETYPE_MAP
 from nautobot_ssot_citrix_adm.diffsync.models.citrix_adm import (
     CitrixAdmDatacenter,
@@ -25,71 +22,7 @@ from nautobot_ssot_citrix_adm.utils.citrix_adm import (
 PLUGIN_CFG = settings.PLUGINS_CONFIG["nautobot_ssot_citrix_adm"]
 
 
-class LabelMixin:
-    """Add labels onto Nautobot objects to provide information on sync status with Citrix ADM."""
-
-    def label_imported_objects(self, target):
-        """Add CustomFields to all objects that were successfully synced to the target."""
-        for modelname in ["device", "port", "address"]:
-            for local_instance in self.get_all(modelname):
-                unique_id = local_instance.get_unique_id()
-                # Verify that the object now has a counterpart in the target DiffSync
-                try:
-                    target.get(modelname, unique_id)
-                except ObjectNotFound:
-                    continue
-
-                self.label_object(modelname, unique_id)
-
-    def label_object(self, modelname, unique_id):
-        """Apply the given CustomField to the identified object."""
-
-        def _label_object(nautobot_object):
-            """Apply custom field to object, if applicable."""
-            nautobot_object.custom_field_data["ssot_last_synchronized"] = today
-            nautobot_object.custom_field_data["system_of_record"] = "Citrix ADM"
-            nautobot_object.validated_save()
-
-        today = datetime.today().date().isoformat()
-        model_instance, name, device, port, address = None, None, None, None, None
-        try:
-            model_instance = self.get(modelname, unique_id)
-        except ObjectNotFound:
-            ids = unique_id.split("__")
-            if modelname == "address":
-                address = ids[0]
-                device = ids[1]
-                port = ids[2]
-            elif modelname == "device":
-                name = unique_id
-            elif modelname == "port":
-                name = ids[0]
-                device = ids[1]
-
-        if model_instance:
-            if hasattr(model_instance, "name"):
-                name = model_instance.name
-            if hasattr(model_instance, "device"):
-                device = model_instance.device
-            if hasattr(model_instance, "port"):
-                port = model_instance.port
-            if hasattr(model_instance, "address"):
-                address = model_instance.address
-
-        if modelname == "device" and name:
-            _label_object(Device.objects.get(name=name))
-        elif modelname == "port" and (name and device):
-            _label_object(Interface.objects.get(name=name, device__name=device))
-        elif modelname == "address" and (address and device and port):
-            _label_object(
-                IPAddress.objects.get(
-                    address=address,
-                    interface=Interface.objects.get(device__name=device, name=port),
-                )
-            )
-
-
-class CitrixAdmAdapter(DiffSync, LabelMixin):
+class CitrixAdmAdapter(DiffSync):
     """DiffSync adapter for Citrix ADM."""
 
     datacenter = CitrixAdmDatacenter

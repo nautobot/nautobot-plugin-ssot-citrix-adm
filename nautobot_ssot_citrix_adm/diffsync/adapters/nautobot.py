@@ -144,9 +144,6 @@ class NautobotAdapter(DiffSync):
             source: The DiffSync whose data was used to update this instance.
             diff: The Diff calculated prior to the sync operation.
         """
-        self.job.log_info(message="Sync is complete. Labelling imported objects from Citrix ADM.")
-        source.label_imported_objects(target=self)
-
         for grouping in ["addresses", "ports", "devices"]:
             for nautobot_obj in self.objects_to_delete[grouping]:
                 try:
