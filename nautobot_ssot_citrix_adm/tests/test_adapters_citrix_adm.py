@@ -1,12 +1,8 @@
 """Test Citrix ADM adapter."""
-import uuid
 from unittest.mock import MagicMock
-from diffsync.exceptions import ObjectNotFound
-from django.contrib.contenttypes.models import ContentType
-from nautobot.dcim.models import Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
-from nautobot.extras.models import CustomField, Job, JobResult, Status
-from nautobot.ipam.models import IPAddress
-from nautobot.utilities.testing import TransactionTestCase
+from netutils.ip import netmask_to_cidr
+from nautobot.extras.models import JobResult
+from nautobot.core.testing import TransactionTestCase
 from nautobot_ssot_citrix_adm.diffsync.adapters.citrix_adm import CitrixAdmAdapter
 from nautobot_ssot_citrix_adm.jobs import CitrixAdmDataSource
 from nautobot_ssot_citrix_adm.tests.fixtures import (
@@ -42,11 +38,11 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
         self.citrix_adm_client.get_vlan_bindings.side_effect = VLAN_FIXTURE_RECV
         self.citrix_adm_client.get_nsip6.side_effect = NSIP6_FIXTURE_RECV
         self.job = CitrixAdmDataSource()
-        self.job.kwargs["debug"] = True
-        self.job.log_warning = MagicMock()
-        self.job.log_info = MagicMock()
+        self.job.debug = True
+        self.job.logger.warning = MagicMock()
+        self.job.logger.info = MagicMock()
         self.job.job_result = JobResult.objects.create(
-            name=self.job.class_path, obj_type=ContentType.objects.get_for_model(Job), user=None, job_id=uuid.uuid4()
+            name=self.job.class_path, task_name="fake task", worker="default"
         )
         self.citrix_adm = CitrixAdmAdapter(job=self.job, sync=None, client=self.citrix_adm_client)
 
@@ -57,15 +53,15 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
             {"ARIA__West"},
             {site.get_unique_id() for site in self.citrix_adm.get_all("datacenter")},
         )
-        self.job.log_info.assert_called_with(message="Attempting to load DC: ARIA")
+        self.job.logger.info.assert_called_with("Attempting to load DC: ARIA")
 
     def test_load_site_duplicate(self):
         """Test Nautobot SSoT Citrix ADM load_site() function with duplicate site."""
         site_info = SITE_FIXTURE_RECV[4]
         self.citrix_adm.load_site(site_info=site_info)
         self.citrix_adm.load_site(site_info=site_info)
-        self.job.log_warning.assert_called_with(
-            message="Duplicate Site attempting to be loaded: {'city': 'New York City', 'zipcode': '10018', 'type': '1', 'name': 'NTC Corporate HQ', 'region': 'North', 'country': 'USA', 'longitude': '-73.989429', 'id': '7d29e100-ae0c-4580-ba86-b72df0b6cfd8', 'latitude': '40.753146'}."
+        self.job.logger.warning.assert_called_with(
+            "Duplicate Site attempting to be loaded: {'city': 'New York City', 'zipcode': '10018', 'type': '1', 'name': 'NTC Corporate HQ', 'region': 'North', 'country': 'USA', 'longitude': '-73.989429', 'id': '7d29e100-ae0c-4580-ba86-b72df0b6cfd8', 'latitude': '40.753146'}."
         )
 
     def test_load_devices(self):
@@ -84,15 +80,15 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
         self.citrix_adm_client.get_devices.return_value = [DEVICE_FIXTURE_RECV[3]]
         self.citrix_adm.load_devices()
         self.citrix_adm.load_devices()
-        self.job.log_warning.assert_called_with(
-            message="Duplicate Device attempting to be loaded: OGI-MSCI-IMS-Mctdgj-Pqsf-M"
+        self.job.logger.warning.assert_called_with(
+            "Duplicate Device attempting to be loaded: OGI-MSCI-IMS-Mctdgj-Pqsf-M"
         )
 
     def test_load_devices_without_hostname(self):
         """Test the Nautobot SSoT Citrix ADM load_devices() function with a device missing hostname."""
         self.citrix_adm_client.get_devices.return_value = [{"hostname": ""}]
         self.citrix_adm.load_devices()
-        self.job.log_warning.assert_called_with(message="Device without hostname will not be loaded. {'hostname': ''}")
+        self.job.logger.warning.assert_called_with("Device without hostname will not be loaded. {'hostname': ''}")
 
     def test_load_ports(self):
         """Test the Nautobot SSoT Citrix ADM load_ports() function."""

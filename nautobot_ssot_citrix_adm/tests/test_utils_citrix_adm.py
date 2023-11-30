@@ -4,7 +4,7 @@ import logging
 from unittest.mock import MagicMock, patch
 import requests
 from requests.exceptions import HTTPError
-from nautobot.utilities.testing import TestCase
+from nautobot.core.testing import TestCase
 from nautobot_ssot_citrix_adm.tests.fixtures import (
     SITE_FIXTURE_SENT,
     SITE_FIXTURE_RECV,
@@ -42,8 +42,7 @@ class TestCitrixAdmClient(TestCase):
         self.password = "password"  # nosec: B105
         self.verify = True
         self.log = MagicMock()
-        self.log.log_failure = MagicMock()
-        self.log.log_info = MagicMock()
+        self.log.logger.info = MagicMock()
         self.client = CitrixNitroClient(self.base_url, self.user, self.password, self.log, self.verify)
 
     def test_init(self):
@@ -76,8 +75,8 @@ class TestCitrixAdmClient(TestCase):
         mock_request.return_value = mock_response
         with self.assertRaises(requests.exceptions.RequestException):
             self.client.login()
-        self.log.log_failure.assert_called_once_with(
-            message="Error while logging into Citrix ADM. Please validate your configuration is correct."
+        self.log.logger.error.assert_called_once_with(
+            "Error while logging into Citrix ADM. Please validate your configuration is correct."
         )
 
     @patch.object(CitrixNitroClient, "request")
@@ -112,6 +111,7 @@ class TestCitrixAdmClient(TestCase):
             url="https://example.com/nitro/v1/example/sample/test?param1=value1param2=value2",
             data='{"key": "value"}',
             headers={"Accept": "application/json", "Content-Type": "application/json"},
+            timeout=60,
             verify=True,
         )
         mock_response.raise_for_status.assert_called_once()
@@ -135,6 +135,7 @@ class TestCitrixAdmClient(TestCase):
             result = self.client.request("POST", endpoint, objecttype, objectname, params, data)
             self.assertEqual(result, {})
         mock_response.raise_for_status.assert_called_once()
+        self.log.logger.warning.assert_called_once_with("Failure with request: ")
 
     @patch.object(CitrixNitroClient, "request")
     def test_get_sites_success(self, mock_request):
@@ -148,7 +149,7 @@ class TestCitrixAdmClient(TestCase):
         """Validate functionality of the get_sites() method failure."""
         mock_request.return_value = {}
         expected = self.client.get_sites()
-        self.log.log_failure.assert_called_once_with(message="Error getting sites from Citrix ADM.")
+        self.log.logger.error.assert_called_once_with("Error getting sites from Citrix ADM.")
         self.assertEqual(expected, {})
 
     @patch.object(CitrixNitroClient, "request")
@@ -163,7 +164,7 @@ class TestCitrixAdmClient(TestCase):
         """Validate functionality of the get_devices() method failure."""
         mock_request.return_value = {}
         expected = self.client.get_devices()
-        self.log.log_failure.assert_called_once_with(message="Error getting devices from Citrix ADM.")
+        self.log.logger.error.assert_called_once_with("Error getting devices from Citrix ADM.")
         self.assertEqual(expected, {})
 
     @patch.object(CitrixNitroClient, "request")
@@ -198,7 +199,7 @@ class TestCitrixAdmClient(TestCase):
         adc = {"hostname": "test", "ip_address": ""}
         mock_request.return_value = {}
         actual = self.client.get_nsip6(adc)
-        self.log.log_warning.assert_called_once_with(message="Error getting nsip6 from test")
+        self.log.logger.warning.assert_called_once_with("Error getting nsip6 from test")
         self.assertEqual(actual, {})
 
     @patch.object(CitrixNitroClient, "request")
@@ -216,7 +217,7 @@ class TestCitrixAdmClient(TestCase):
         adc = {"hostname": "test", "ip_address": ""}
         mock_request.return_value = {}
         actual = self.client.get_vlan_bindings(adc)
-        self.log.log_warning.assert_called_once_with(message="Error getting vlan bindings from test")
+        self.log.logger.warning.assert_called_once_with("Error getting vlan bindings from test")
         self.assertEqual(actual, {})
 
     def test_parse_hostname_for_role_success(self):
