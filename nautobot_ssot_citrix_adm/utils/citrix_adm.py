@@ -235,7 +235,7 @@ def parse_vlan_bindings(vlan_bindings: List[dict], adc: dict, job) -> List[dict]
                     record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port, "version": 6}
                     ports.append(record)
         else:
-            if job.kwargs.get("debug"):
+            if job.debug:
                 job.logger.warning(f"{adc['hostname']}: VLAN {binding['id']} has no interface binding: {binding}.")
 
     # Account for NSIP in VLAN 1 which is not returned by get_vlan_bindings()
@@ -248,7 +248,7 @@ def parse_vlan_bindings(vlan_bindings: List[dict], adc: dict, job) -> List[dict]
             record = {"vlan": "1", "ipaddress": ipaddress, "netmask": netmask, "port": port, "version": 4}
             ports.append(record)
 
-            if job.kwargs.get("debug"):
+            if job.debug:
                 job.logger.warning(f"{adc['hostname']} is using VLAN 1 for NSIP.")
 
     return ports
