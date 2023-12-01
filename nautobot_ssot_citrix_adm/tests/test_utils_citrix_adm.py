@@ -2,6 +2,7 @@
 
 import logging
 from unittest.mock import MagicMock, patch
+import requests
 from requests.exceptions import HTTPError
 from nautobot.utilities.testing import TestCase
 from nautobot_ssot_citrix_adm.tests.fixtures import (
@@ -73,7 +74,8 @@ class TestCitrixAdmClient(TestCase):
         mock_response = MagicMock()
         mock_response = {}
         mock_request.return_value = mock_response
-        self.client.login()
+        with self.assertRaises(requests.exceptions.RequestException):
+            self.client.login()
         self.log.log_failure.assert_called_once_with(
             message="Error while logging into Citrix ADM. Please validate your configuration is correct."
         )
@@ -94,7 +96,7 @@ class TestCitrixAdmClient(TestCase):
         """Validate functionality of the request() method success."""
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()
-        mock_response.json.return_value = "Test successful!"
+        mock_response.json.return_value = {"errorcode": 0}
         mock_request.return_value = mock_response
 
         endpoint = "example"
@@ -113,7 +115,7 @@ class TestCitrixAdmClient(TestCase):
             verify=True,
         )
         mock_response.raise_for_status.assert_called_once()
-        self.assertEqual(response, "Test successful!")
+        self.assertEqual(response, {"errorcode": 0})
 
     @patch("nautobot_ssot_citrix_adm.utils.citrix_adm.requests.request")
     def test_request_failure(self, mock_request):
@@ -129,9 +131,10 @@ class TestCitrixAdmClient(TestCase):
         params = "test"
         data = '{"key": "value"}'
 
-        self.client.request("POST", endpoint, objecttype, objectname, params, data)
+        with self.assertRaises(requests.exceptions.HTTPError):
+            result = self.client.request("POST", endpoint, objecttype, objectname, params, data)
+            self.assertEqual(result, {})
         mock_response.raise_for_status.assert_called_once()
-        self.log.log_warning.assert_called_once_with(message="Failure with request: ")
 
     @patch.object(CitrixNitroClient, "request")
     def test_get_sites_success(self, mock_request):
