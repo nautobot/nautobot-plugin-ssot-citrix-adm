@@ -147,7 +147,7 @@ class CitrixNitroClient:
         result = self.request("GET", endpoint, objecttype, params=params)
         if result:
             return result[objecttype]
-        self.log.log_warning(message=f"Error getting nsip from {adc['hostname']}")
+        self.log.logger.warning(f"Error getting nsip from {adc['hostname']}")
         return {}
 
     def get_nsip6(self, adc):
@@ -236,7 +236,7 @@ def parse_vlan_bindings(vlan_bindings: List[dict], adc: dict, job) -> List[dict]
                     ports.append(record)
         else:
             if job.kwargs.get("debug"):
-                job.log_warning(f"{adc['hostname']}: VLAN {binding['id']} has no interface binding: {binding}.")
+                job.logger.warning(f"{adc['hostname']}: VLAN {binding['id']} has no interface binding: {binding}.")
 
     # Account for NSIP in VLAN 1 which is not returned by get_vlan_bindings()
     if vlan_bindings:
@@ -249,7 +249,7 @@ def parse_vlan_bindings(vlan_bindings: List[dict], adc: dict, job) -> List[dict]
             ports.append(record)
 
             if job.kwargs.get("debug"):
-                job.log_warning(f"{adc['hostname']} is using VLAN 1 for NSIP.")
+                job.logger.warning(f"{adc['hostname']} is using VLAN 1 for NSIP.")
 
     return ports
 

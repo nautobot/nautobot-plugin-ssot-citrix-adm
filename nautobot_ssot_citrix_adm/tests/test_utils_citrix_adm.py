@@ -43,6 +43,7 @@ class TestCitrixAdmClient(TestCase):
         self.verify = True
         self.log = MagicMock()
         self.log.logger.info = MagicMock()
+        self.log.logger.warning = MagicMock()
         self.client = CitrixNitroClient(self.base_url, self.user, self.password, self.log, self.verify)
 
     def test_init(self):
@@ -180,7 +181,7 @@ class TestCitrixAdmClient(TestCase):
         adc = {"hostname": "test", "ip_address": ""}
         mock_request.return_value = {}
         actual = self.client.get_nsip(adc)
-        self.log.log_warning.assert_called_once_with(message="Error getting nsip from test")
+        self.log.logger.warning.assert_called_once_with("Error getting nsip from test")
         self.assertEqual(actual, {})
 
     @patch.object(CitrixNitroClient, "request")
