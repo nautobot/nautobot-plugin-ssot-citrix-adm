@@ -58,6 +58,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
     def test_load_site_duplicate(self):
         """Test Nautobot SSoT Citrix ADM load_site() function with duplicate site."""
         site_info = SITE_FIXTURE_RECV[4]
+        self.job.debug = True
         self.citrix_adm.load_site(site_info=site_info)
         self.citrix_adm.load_site(site_info=site_info)
         self.job.logger.warning.assert_called_with(

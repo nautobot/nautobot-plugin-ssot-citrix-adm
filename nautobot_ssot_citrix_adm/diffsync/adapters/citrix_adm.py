@@ -63,7 +63,7 @@ class CitrixAdmAdapter(DiffSync):
         """
         try:
             found_site = self.get(self.datacenter, {"name": site_info.get("name"), "region": site_info.get("region")})
-            if found_site:
+            if found_site and self.job.debug:
                 self.job.logger.warning(f"Duplicate Site attempting to be loaded: {site_info}.")
         except ObjectNotFound:
             if self.job.debug:
