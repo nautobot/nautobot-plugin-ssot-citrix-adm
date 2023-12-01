@@ -50,12 +50,10 @@ class CitrixAdmDataSource(DataSource, Job):
             verify=PLUGIN_CFG["verify"],
             logger=self,
         )
-        client.login()
         self.source_adapter = citrix_adm.CitrixAdmAdapter(
             job=self, sync=self.sync, client=client, tenant=PLUGIN_CFG.get("tenant")
         )
         self.source_adapter.load()
-        client.logout()
 
     def load_target_adapter(self):
         """Load data from Nautobot into DiffSync models."""

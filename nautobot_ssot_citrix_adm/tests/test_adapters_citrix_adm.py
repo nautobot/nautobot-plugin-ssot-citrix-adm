@@ -3,7 +3,6 @@ import uuid
 from unittest.mock import MagicMock
 from diffsync.exceptions import ObjectNotFound
 from django.contrib.contenttypes.models import ContentType
-from netutils.ip import netmask_to_cidr
 from nautobot.dcim.models import Device, DeviceRole, DeviceType, Interface, Manufacturer, Site
 from nautobot.extras.models import CustomField, Job, JobResult, Status
 from nautobot.ipam.models import IPAddress
@@ -15,6 +14,7 @@ from nautobot_ssot_citrix_adm.tests.fixtures import (
     DEVICE_FIXTURE_RECV,
     VLAN_FIXTURE_RECV,
     NSIP6_FIXTURE_RECV,
+    ADM_DEVICE_MAP_FIXTURE,
 )
 
 
@@ -41,7 +41,6 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
         self.citrix_adm_client.get_devices.return_value = DEVICE_FIXTURE_RECV
         self.citrix_adm_client.get_vlan_bindings.side_effect = VLAN_FIXTURE_RECV
         self.citrix_adm_client.get_nsip6.side_effect = NSIP6_FIXTURE_RECV
-
         self.job = CitrixAdmDataSource()
         self.job.kwargs["debug"] = True
         self.job.log_warning = MagicMock()
@@ -97,31 +96,27 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
 
     def test_load_ports(self):
         """Test the Nautobot SSoT Citrix ADM load_ports() function."""
-
+        self.citrix_adm.adm_device_map = ADM_DEVICE_MAP_FIXTURE
+        self.citrix_adm.get = MagicMock()
+        self.citrix_adm.get.side_effect = [ObjectNotFound, MagicMock(), ObjectNotFound, MagicMock()]
         self.citrix_adm.load_ports()
         expected_ports = {
             f"{port['port']}__{adc['hostname']}"
             for _, adc in self.citrix_adm.adm_device_map.items()
             for port in adc["ports"]
         }
-        expected_ports.update({f"Management__{adc['hostname']}" for _, adc in self.citrix_adm.adm_device_map.items()})
         expected_ports = list(expected_ports)
         actual_ports = [port.get_unique_id() for port in self.citrix_adm.get_all("port")]
         self.assertEqual(sorted(expected_ports), sorted(actual_ports))
 
-    def test_management_addresses_loaded(self):
-        """Test the Nautobot SSoT Citrix ADM loads management addresses."""
-        self.citrix_adm.load()
-        expected_addrs = [
-            f"{addr['mgmt_ip_address']}/{netmask_to_cidr(addr['netmask'])}__{addr['hostname']}__Management"
-            for addr in DEVICE_FIXTURE_RECV
-        ]
-        actual_addrs = [addr.get_unique_id() for addr in self.citrix_adm.get_all("address")]
-        for addr in expected_addrs:
-            self.assertTrue(addr in actual_addrs)
-
     def test_port_addresses_loaded(self):
         """Test the Nautobot SSoT Citrix ADM loads port addresses."""
+        self.citrix_adm.adm_device_map = ADM_DEVICE_MAP_FIXTURE
+        self.citrix_adm.get = MagicMock()
+        self.citrix_adm.get.side_effect = [ObjectNotFound, ObjectNotFound]
+        self.citrix_adm.adm_device_map = ADM_DEVICE_MAP_FIXTURE
+        self.citrix_adm.get = MagicMock()
+        self.citrix_adm.get.side_effect = [ObjectNotFound, ObjectNotFound]
         self.citrix_adm.load_addresses()
         expected_addrs = [
             f"{port['ipaddress']}/{port['netmask']}__{adc['hostname']}__{port['port']}"
@@ -129,13 +124,8 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
             for port in adc["ports"]
             if port.get("ipaddress")
         ]
-        expected_addrs.extend(
-            f"{adc['mgmt_ip_address']}/{netmask_to_cidr(adc['netmask'])}__{adc['hostname']}__Management"
-            for _, adc in self.citrix_adm.adm_device_map.items()
-        )
         actual_addrs = [addr.get_unique_id() for addr in self.citrix_adm.get_all("address")]
-        for addr in expected_addrs:
-            self.assertTrue(addr in actual_addrs)
+        self.assertEqual(sorted(expected_addrs), sorted(actual_addrs))
 
     def test_label_imported_objects_not_found(self):
         """Validate the label_imported_objects() handling ObjectNotFound."""

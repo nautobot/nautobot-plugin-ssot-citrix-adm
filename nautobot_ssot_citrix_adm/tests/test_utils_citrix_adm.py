@@ -2,6 +2,7 @@
 
 import logging
 from unittest.mock import MagicMock, patch
+import requests
 from requests.exceptions import HTTPError
 from nautobot.utilities.testing import TestCase
 from nautobot_ssot_citrix_adm.tests.fixtures import (
@@ -13,10 +14,20 @@ from nautobot_ssot_citrix_adm.tests.fixtures import (
     NSIP6_FIXTURE_RECV,
     VLAN_FIXTURE_SENT,
     VLAN_FIXTURE_RECV,
+    NSIP_FIXTURE_SENT,
+    NSIP_FIXTURE_RECV,
 )
-from nautobot_ssot_citrix_adm.utils.citrix_adm import parse_hostname_for_role, parse_version, CitrixNitroClient
+from nautobot_ssot_citrix_adm.utils.citrix_adm import (
+    parse_hostname_for_role,
+    parse_version,
+    CitrixNitroClient,
+    parse_vlan_bindings,
+    parse_nsips,
+    parse_nsip6s,
+)
 
 LOGGER = logging.getLogger(__name__)
+# pylint: disable=too-many-public-methods
 
 
 class TestCitrixAdmClient(TestCase):
@@ -63,7 +74,8 @@ class TestCitrixAdmClient(TestCase):
         mock_response = MagicMock()
         mock_response = {}
         mock_request.return_value = mock_response
-        self.client.login()
+        with self.assertRaises(requests.exceptions.RequestException):
+            self.client.login()
         self.log.log_failure.assert_called_once_with(
             message="Error while logging into Citrix ADM. Please validate your configuration is correct."
         )
@@ -84,7 +96,7 @@ class TestCitrixAdmClient(TestCase):
         """Validate functionality of the request() method success."""
         mock_response = MagicMock()
         mock_response.raise_for_status = MagicMock()
-        mock_response.json.return_value = "Test successful!"
+        mock_response.json.return_value = {"errorcode": 0}
         mock_request.return_value = mock_response
 
         endpoint = "example"
@@ -103,7 +115,7 @@ class TestCitrixAdmClient(TestCase):
             verify=True,
         )
         mock_response.raise_for_status.assert_called_once()
-        self.assertEqual(response, "Test successful!")
+        self.assertEqual(response, {"errorcode": 0})
 
     @patch("nautobot_ssot_citrix_adm.utils.citrix_adm.requests.request")
     def test_request_failure(self, mock_request):
@@ -119,9 +131,10 @@ class TestCitrixAdmClient(TestCase):
         params = "test"
         data = '{"key": "value"}'
 
-        self.client.request("POST", endpoint, objecttype, objectname, params, data)
+        with self.assertRaises(requests.exceptions.HTTPError):
+            result = self.client.request("POST", endpoint, objecttype, objectname, params, data)
+            self.assertEqual(result, {})
         mock_response.raise_for_status.assert_called_once()
-        self.log.log_warning.assert_called_once_with(message="Failure with request: ")
 
     @patch.object(CitrixNitroClient, "request")
     def test_get_sites_success(self, mock_request):
@@ -154,8 +167,25 @@ class TestCitrixAdmClient(TestCase):
         self.assertEqual(expected, {})
 
     @patch.object(CitrixNitroClient, "request")
-    def test_get_nsip6_success(self, mock_request):
+    def test_get_nsip_success(self, mock_request):
         """Validate functionality of the get_nsip6() method success."""
+        adc = {"hostname": "test", "ip_address": ""}
+        mock_request.return_value = NSIP_FIXTURE_SENT
+        expected = self.client.get_nsip(adc)
+        self.assertEqual(NSIP_FIXTURE_RECV, expected)
+
+    @patch.object(CitrixNitroClient, "request")
+    def test_get_nsip_failure(self, mock_request):
+        """Validate functionality of the get_nsip() method failure."""
+        adc = {"hostname": "test", "ip_address": ""}
+        mock_request.return_value = {}
+        actual = self.client.get_nsip(adc)
+        self.log.log_warning.assert_called_once_with(message="Error getting nsip from test")
+        self.assertEqual(actual, {})
+
+    @patch.object(CitrixNitroClient, "request")
+    def test_get_nsip6_success(self, mock_request):
+        """Validate functionality of the get_nsip() method success."""
         adc = {"hostname": "test", "ip_address": ""}
         mock_request.side_effect = NSIP6_FIXTURE_SENT
         for expected in NSIP6_FIXTURE_RECV:
@@ -173,7 +203,7 @@ class TestCitrixAdmClient(TestCase):
 
     @patch.object(CitrixNitroClient, "request")
     def test_get_vlan_bindings_success(self, mock_request):
-        """Validate functionality of the get_nsip6() method success."""
+        """Validate functionality of the get_vlan_bindings() method success."""
         adc = {"hostname": "test", "ip_address": ""}
         mock_request.side_effect = VLAN_FIXTURE_SENT
         for expected in VLAN_FIXTURE_RECV:
@@ -182,7 +212,7 @@ class TestCitrixAdmClient(TestCase):
 
     @patch.object(CitrixNitroClient, "request")
     def test_get_vlan_bindings_failure(self, mock_request):
-        """Validate functionality of the get_nsip6() method failure."""
+        """Validate functionality of the get_vlan_bindings() method failure."""
         adc = {"hostname": "test", "ip_address": ""}
         mock_request.return_value = {}
         actual = self.client.get_vlan_bindings(adc)
@@ -208,4 +238,32 @@ class TestCitrixAdmClient(TestCase):
         version = "NetScaler NS13.1: Build 37.38.nc, Date: Nov 23 2022, 04:42:36   (64-bit)"
         expected = "NS13.1: Build 37.38.nc"
         actual = parse_version(version=version)
+        self.assertEqual(actual, expected)
+
+    def test_parse_vlan_bindings(self):
+        """Validate functionality of the parse_vlan_bindings function."""
+        vlan_bindings = VLAN_FIXTURE_RECV[0]
+        adc = {"hostname": "test", "ip_address": "192.168.0.1", "netmask": "255.255.255.0"}
+        actual = parse_vlan_bindings(vlan_bindings=vlan_bindings, adc=adc, job=self)
+        expected = [{"ipaddress": "192.168.0.1", "netmask": 24, "port": "10/1", "version": 4, "vlan": "80"}]
+        self.assertEqual(actual, expected)
+
+    def test_parse_nsips(self):
+        """Validate functionality of the parse_nsips function."""
+        nsips = NSIP_FIXTURE_RECV
+        adc = {"hostname": "test", "mgmt_ip_address": "192.168.0.2"}
+        ports = [{"ipaddress": "192.168.0.1", "netmask": 24, "port": "10/1", "version": 4, "vlan": "80"}]
+        expected = [
+            {"ipaddress": "192.168.0.1", "netmask": 24, "tags": ["NSIP"], "port": "10/1", "version": 4, "vlan": "80"},
+            {"ipaddress": "192.168.0.2", "netmask": 24, "tags": ["MGMT"], "port": "10/1", "version": 4, "vlan": "80"},
+        ]
+        actual = parse_nsips(nsips=nsips, adc=adc, ports=ports)
+        self.assertEqual(actual, expected)
+
+    def test_parse_nsip6s(self):
+        """Validate functionality of the parse_nsip6s function."""
+        nsip6s = NSIP6_FIXTURE_RECV[0]
+        ports = []
+        expected = [{"ipaddress": "fe80::1234:5678:9abc:dev1", "netmask": "64", "port": "L0/1", "vlan": "1"}]
+        actual = parse_nsip6s(nsip6s=nsip6s, ports=ports)
         self.assertEqual(actual, expected)
