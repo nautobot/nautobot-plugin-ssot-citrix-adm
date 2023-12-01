@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v1.1.1 (2023-12-01)
+
+### Fix
+
+* 🐛 Throw Exception if login failure so Job doesn't continue unnecessarily. ([`e60e2b2`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/e60e2b28859299617e22e0a94ddbfd3396a9ebfe))
+* ♻️ Redo how API interactions are validated. ([`7409fdf`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/7409fdfff6d1dd6ab66933bb20d8cf5661614c29))
+* Incorrect method names ([`f4d5498`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/f4d5498af69d92abd8aed3efc929b6245f897d84))
+* Incorrect method names ([`cf3c78f`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/cf3c78f67cf046f5305081e29ec6d6718c4a5f80))
+
 ## v1.1.0 (2023-11-06)
 
 ### Feature
