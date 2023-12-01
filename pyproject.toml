@@ -16,7 +16,7 @@ python = ">=3.8,<3.12"
 # Required for Python 3.7 for now. See: https://stackoverflow.com/a/73932581/194311
 importlib-metadata = "4.13.0"
 # Used for local development
-nautobot = { version = "1.6.1" }
+nautobot = { version = "1.6.6" }
 nautobot-ssot = "^1.2.0"
 nautobot-device-lifecycle-mgmt = { version = "^1.2.0", optional = true }
 netutils = "1.6.0"
