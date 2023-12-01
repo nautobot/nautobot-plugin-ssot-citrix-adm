@@ -14,22 +14,22 @@ except ImportError:
     LIFECYCLE_MGMT = False
 
 
-def add_software_lcm(diffsync, platform: str, version: str):
+def add_software_lcm(diffsync, platform_name: str, version: str):
     """Add OS Version as SoftwareLCM if Device Lifecycle Plugin found.
 
     Args:
         diffsync (DiffSyncAdapter): DiffSync adapter with Job and maps.
-        platform (str): Name of platform to associate version to.
+        platform_name (str): Name of platform to associate version to.
         version (str): The software version to be created for specified platform.
 
     Returns:
         UUID: UUID of the OS Version that is being found or created.
     """
-    platform = Platform.objects.get(name=platform)
+    platform = Platform.objects.get(name=platform_name)
     try:
-        os_ver = SoftwareLCM.objects.get(device_platform=platform, version=version).id
+        os_ver = SoftwareLCM.objects.get(device_platform=platform_name, version=version).id
     except SoftwareLCM.DoesNotExist:
-        diffsync.job.logger.info(f"Creating Version {version} for {platform}.")
+        diffsync.job.logger.info(f"Creating Version {version} for {platform_name}.")
         os_ver = SoftwareLCM(
             device_platform=platform,
             version=version,
