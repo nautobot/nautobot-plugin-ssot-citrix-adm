@@ -3,7 +3,6 @@ from datetime import datetime
 from django.conf import settings
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
-from netutils.ip import netmask_to_cidr
 from nautobot.dcim.models import Device, Interface
 from nautobot.extras.models import Job
 from nautobot.ipam.models import IPAddress
@@ -14,7 +13,14 @@ from nautobot_ssot_citrix_adm.diffsync.models.citrix_adm import (
     CitrixAdmPort,
     CitrixAdmAddress,
 )
-from nautobot_ssot_citrix_adm.utils.citrix_adm import parse_hostname_for_role, parse_version, CitrixNitroClient
+from nautobot_ssot_citrix_adm.utils.citrix_adm import (
+    parse_hostname_for_role,
+    parse_version,
+    CitrixNitroClient,
+    parse_vlan_bindings,
+    parse_nsips,
+    parse_nsip6s,
+)
 
 PLUGIN_CFG = settings.PLUGINS_CONFIG["nautobot_ssot_citrix_adm"]
 
@@ -125,7 +131,8 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
         try:
             found_site = self.get(self.datacenter, {"name": site_info.get("name"), "region": site_info.get("region")})
             if found_site:
-                self.job.log_warning(message=f"Duplicate Site attempting to be loaded: {site_info}.")
+                if self.job.kwargs.get("debug"):
+                    self.job.log_warning(message=f"Duplicate Site attempting to be loaded: {site_info}.")
         except ObjectNotFound:
             if self.job.kwargs.get("debug"):
                 self.job.log_info(message=f"Attempting to load DC: {site_info['name']}")
@@ -165,62 +172,24 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
                     tenant=self.tenant,
                     version=parse_version(dev["version"]),
                     uuid=None,
+                    hanode=dev["ha_ip_address"],
                 )
                 self.add(new_dev)
                 self.adm_device_map[dev["hostname"]] = dev
-                if dev.get("mgmt_ip_address"):
-                    address = f"{dev['mgmt_ip_address']}/{netmask_to_cidr(netmask=dev['netmask'])}"
-                    try:
-                        _ = self.get(self.port, {"name": "Management", "device": dev["hostname"], "port": "Management"})
-                    except ObjectNotFound:
-                        mgmt_port = self.add_port(dev_name=dev["hostname"])
-                        new_dev.add_child(mgmt_port)
-                        try:
-                            _ = self.get(
-                                self.address,
-                                {"address": address, "device": dev["hostname"], "port": "Management"},
-                            )
-                        except ObjectNotFound:
-                            self.load_address(address=address, device=dev["hostname"], port="Management", primary=True)
 
     def create_port_map(self):
-        """Create a port/vlan/ip map for each ADC instance."""
-        self.job.log_info(message="Retrieving nsip and port bindings from ADC instances.")
+        """Create a port/vlan/IP mapping for each ADC instance."""
+        self.job.log_info(message="Retrieving NSIP and port bindings from ADC instances.")
+        """Create a port/vlan/IP mapping for each ADC instance."""
+        self.job.log_info(message="Retrieving NSIP and port bindings from ADC instances.")
         for _, adc in self.adm_device_map.items():
-            nsip6s = self.conn.get_nsip6(adc)
             vlan_bindings = self.conn.get_vlan_bindings(adc)
-            ports = []
+            nsips = self.conn.get_nsip(adc)
+            nsip6s = self.conn.get_nsip6(adc)
 
-            try:
-                for binding in vlan_bindings:
-                    if binding.get("vlan_nsip_binding"):
-                        for nsip in binding["vlan_nsip_binding"]:
-                            vlan = nsip["id"]
-                            ipaddress = nsip["ipaddress"]
-                            netmask = netmask_to_cidr(nsip["netmask"])
-                            port = binding["vlan_interface_binding"][0]["ifnum"]
-                            record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
-                            ports.append(record)
-                    if binding.get("vlan_nsip6_binding"):
-                        for nsip6 in binding["vlan_nsip6_binding"]:
-                            vlan = nsip6["id"]
-                            ipaddress, netmask = nsip6["ipaddress"].split("/")
-                            port = binding["vlan_interface_binding"][0]["ifnum"]
-                            record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
-                            ports.append(record)
-            except KeyError:
-                self.job.log_warning(message=f"Unable to load bindings for {adc['hostname']}.")
-
-            try:
-                for nsip6 in nsip6s:
-                    if nsip6["scope"] == "link-local":
-                        vlan = nsip6["vlan"]
-                        ipaddress, netmask = nsip6["ipv6address"].split("/")
-                        port = "L0/1"
-                        record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
-                        ports.append(record)
-            except KeyError:
-                self.job.log_warning(message=f"Unable to load nsip6 for {adc['hostname']}.")
+            ports = parse_vlan_bindings(vlan_bindings, adc, self.job)
+            ports = parse_nsips(nsips, ports, adc)
+            ports = parse_nsip6s(nsip6s, ports)
 
             self.adm_device_map[adc["hostname"]]["ports"] = ports
 
@@ -255,10 +224,16 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
                             },
                         )
                     except ObjectNotFound:
+                        _tags = port["tags"] if port.get("tags") else []
+                        if len(_tags) > 1:
+                            _tags.sort()
+                        _primary = True if "MGMT" in _tags or "MIP" in _tags else False
                         self.load_address(
                             address=f"{port['ipaddress']}/{port['netmask']}",
                             device=adc["hostname"],
                             port=port["port"],
+                            tags=_tags,
+                            primary=_primary,
                         )
 
     def add_port(
@@ -285,7 +260,7 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
         self.add(new_port)
         return new_port
 
-    def load_address(self, address: str, device: str, port: str, primary: bool = False):
+    def load_address(self, address: str, device: str, port: str, primary: bool = False, tags: list = []):
         """Load CitrixAdmAddress DiffSync model with specified data.
 
         Args:
@@ -293,21 +268,27 @@ class CitrixAdmAdapter(DiffSync, LabelMixin):
             device (str): Device that IP resides on.
             port (str): Interface that IP is configured on.
             primary (str): Whether the IP is primary IP for assigned device. Defaults to False.
+            tags (list): List of tags assigned to IP. Defaults to [].
         """
         new_addr = self.address(
-            address=address,
-            device=device,
-            port=port,
-            primary=primary,
-            tenant=self.tenant,
-            uuid=None,
+            address=address, device=device, port=port, primary=primary, tenant=self.tenant, uuid=None, tags=tags
         )
         self.add(new_addr)
 
     def load(self):
         """Load data from Citrix ADM into DiffSync models."""
-        self.create_site_map()
-        self.load_devices()
-        self.create_port_map()
-        self.load_ports()
-        self.load_addresses()
+        base_urls = [PLUGIN_CFG["base_url"], PLUGIN_CFG["additional_url"]]
+        for url in base_urls:
+            # init
+            self.conn.url = url
+            self.conn.login()
+            self.adm_site_map = {}
+            self.adm_device_map = {}
+
+            self.create_site_map()
+            self.load_devices()
+            self.create_port_map()
+            self.load_ports()
+            self.load_addresses()
+
+            self.conn.logout()

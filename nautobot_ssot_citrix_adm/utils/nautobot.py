@@ -1,8 +1,10 @@
 """Utility functions for working with Nautobot."""
+from typing import List
 from uuid import UUID
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import Device, Platform
 from nautobot.extras.models import Relationship, RelationshipAssociation
+from taggit.managers import TaggableManager
 
 try:
     from nautobot_device_lifecycle_mgmt.models import SoftwareLCM
@@ -56,3 +58,20 @@ def assign_version_to_device(diffsync, device: Device, software_lcm: UUID):
         destination_id=device.id,
     )
     new_assoc.validated_save()
+
+
+def get_tag_strings(list_tags: TaggableManager) -> List[str]:
+    """Gets string values of all Tags in a list.
+
+    This is the opposite of the `get_tags` function.
+
+    Args:
+        list_tags (TaggableManager): List of Tag objects to convert to strings.
+
+    Returns:
+        List[str]: List of string values matching the Tags passed in.
+    """
+    _strings = list(list_tags.names())
+    if len(_strings) > 1:
+        _strings.sort()
+    return _strings

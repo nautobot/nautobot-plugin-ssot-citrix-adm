@@ -20,7 +20,14 @@ def nautobot_database_ready_callback(sender, *, apps, **kwargs):  # pylint: disa
     Platform.objects.update_or_create(
         name="citrix.adc", slug="netscaler", napalm_driver="netscaler", manufacturer_id=citrix_manu.id
     )
-
+    ha_node_cf_dict = {
+        "name": "ha_node",
+        "slug": "ha_node",
+        "type": CustomFieldTypeChoices.TYPE_TEXT,
+        "label": "HA Node",
+    }
+    ha_node_field, _ = CustomField.objects.get_or_create(name=ha_node_cf_dict["name"], defaults=ha_node_cf_dict)
+    ha_node_field.content_types.add(ContentType.objects.get_for_model(Device))
     os_cf_dict = {
         "name": "os_version",
         "slug": "os_version",

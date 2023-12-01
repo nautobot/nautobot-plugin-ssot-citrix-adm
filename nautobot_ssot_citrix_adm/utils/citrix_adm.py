@@ -2,6 +2,7 @@
 import re
 from typing import List, Union, Optional, Tuple
 import requests
+from netutils.ip import netmask_to_cidr, is_ip_within, ipaddress_interface
 
 
 # based on client found at https://github.com/slauger/python-nitro
@@ -46,6 +47,7 @@ class CitrixNitroClient:
             self.log.log_failure(
                 message="Error while logging into Citrix ADM. Please validate your configuration is correct."
             )
+            raise requests.exceptions.RequestException()
 
     def logout(self):
         """Best practice to logout when session is complete."""
@@ -101,12 +103,13 @@ class CitrixNitroClient:
             headers=self.headers,
             verify=self.verify,
         )
-        try:
+        if _result:
             _result.raise_for_status()
-            return _result.json()
-        except requests.exceptions.HTTPError as err:
-            self.log.log_warning(message=f"Failure with request: {err}")
-            return {}
+            _result = _result.json()
+            if _result.get("errorcode") == 0:
+                return _result
+            self.log.log_warning(message=f"Failure with request: {_result['message']}")
+        return {}
 
     def get_sites(self):
         """Gather all sites configured on MAS/ADM instance."""
@@ -126,12 +129,26 @@ class CitrixNitroClient:
         endpoint = "config"
         objecttype = "managed_device"
         params = {
-            "attrs": "ip_address,hostname,gateway,mgmt_ip_address,description,serialnumber,type,display_name,netmask,datacenter_id,version,instance_state"
+            "attrs": "ip_address,hostname,gateway,mgmt_ip_address,description,serialnumber,type,display_name,netmask,datacenter_id,version,instance_state,ha_ip_address"
         }
         result = self.request("GET", endpoint, objecttype, params=params)
         if result:
             return result[objecttype]
         self.log.log_failure(message="Error getting devices from Citrix ADM.")
+        return {}
+
+    def get_nsip(self, adc):
+        """Gather all nsip addresses from ADC instance using ADM as proxy."""
+        endpoint = "config"
+        objecttype = "nsip"
+        params = {}
+        self.headers["_MPS_API_PROXY_MANAGED_INSTANCE_USERNAME"] = self.username
+        self.headers["_MPS_API_PROXY_MANAGED_INSTANCE_PASSWORD"] = self.password
+        self.headers["_MPS_API_PROXY_MANAGED_INSTANCE_IP"] = adc["ip_address"]
+        result = self.request("GET", endpoint, objecttype, params=params)
+        if result:
+            return result[objecttype]
+        self.log.log_warning(message=f"Error getting nsip from {adc['hostname']}")
         return {}
 
     def get_nsip6(self, adc):
@@ -196,3 +213,82 @@ def parse_hostname_for_role(hostname_map: List[Tuple[str, str]], device_hostname
             if match:
                 device_role = entry[1]
     return device_role
+
+
+def parse_vlan_bindings(vlan_bindings: List[dict], adc: dict, job) -> List[dict]:
+    """Parse VLAN Bindings from ADC."""
+    ports = []
+    for binding in vlan_bindings:
+        if binding.get("vlan_interface_binding"):
+            if binding.get("vlan_nsip_binding"):
+                for nsip in binding["vlan_nsip_binding"]:
+                    vlan = nsip["id"]
+                    ipaddress = nsip["ipaddress"]
+                    netmask = netmask_to_cidr(nsip["netmask"])
+                    port = binding["vlan_interface_binding"][0]["ifnum"]
+                    record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port, "version": 4}
+                    ports.append(record)
+            if binding.get("vlan_nsip6_binding"):
+                for nsip6 in binding["vlan_nsip6_binding"]:
+                    vlan = nsip6["id"]
+                    ipaddress, netmask = nsip6["ipaddress"].split("/")
+                    port = binding["vlan_interface_binding"][0]["ifnum"]
+                    record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port, "version": 6}
+                    ports.append(record)
+        else:
+            if job.kwargs.get("debug"):
+                job.log_warning(f"{adc['hostname']}: VLAN {binding['id']} has no interface binding: {binding}.")
+
+    # Account for NSIP in VLAN 1 which is not returned by get_vlan_bindings()
+    if vlan_bindings:
+        ports_dict = {port["ipaddress"]: port for port in ports}
+        if adc["ip_address"] not in ports_dict:
+            port = vlan_bindings[0]["vlan_interface_binding"][0]["ifnum"]
+            netmask = netmask_to_cidr(adc["netmask"])
+            ipaddress = adc["ip_address"]
+            record = {"vlan": "1", "ipaddress": ipaddress, "netmask": netmask, "port": port, "version": 4}
+            ports.append(record)
+
+            if job.kwargs.get("debug"):
+                job.log_warning(f"{adc['hostname']} is using VLAN 1 for NSIP.")
+
+    return ports
+
+
+def parse_nsips(nsips: List[dict], ports: List[dict], adc: dict) -> List[dict]:
+    """Parse Netscaler IPv4 Addresses."""
+    for nsip in nsips:
+        for port in ports:
+            if port["ipaddress"] == nsip["ipaddress"]:
+                if nsip["type"] == "NSIP":
+                    port["tags"] = ["NSIP"]
+                break
+
+            if nsip["type"] in ["SNIP", "MIP"] and port["version"] != 6:
+                network = str(ipaddress_interface(f"{port['ipaddress']}/{port['netmask']}", "network"))
+                if is_ip_within(nsip["ipaddress"], network):
+                    _tags = ["MGMT"] if nsip["ipaddress"] == adc["mgmt_ip_address"] else []
+                    _tags = ["MIP"] if nsip["type"] == "MIP" else _tags
+                    record = {
+                        "vlan": port["vlan"],
+                        "ipaddress": nsip["ipaddress"],
+                        "netmask": netmask_to_cidr(nsip["netmask"]),
+                        "port": port["port"],
+                        "version": 4,
+                        "tags": _tags,
+                    }
+                    ports.append(record)
+    return ports
+
+
+def parse_nsip6s(nsip6s: List[dict], ports: List[dict]) -> List[dict]:
+    """Parse Netscaler IPv6 Addresses."""
+    for nsip6 in nsip6s:
+        if nsip6["scope"] == "link-local":
+            vlan = nsip6["vlan"]
+            ipaddress, netmask = nsip6["ipv6address"].split("/")
+            port = "L0/1"
+            record = {"vlan": vlan, "ipaddress": ipaddress, "netmask": netmask, "port": port}
+            ports.append(record)
+
+    return ports
