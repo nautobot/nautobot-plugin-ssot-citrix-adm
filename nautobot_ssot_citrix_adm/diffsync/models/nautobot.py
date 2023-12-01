@@ -87,7 +87,7 @@ class NautobotDevice(Device):
         if attrs.get("version"):
             new_device.custom_field_data.update({"os_version": attrs["version"]})
             if LIFECYCLE_MGMT:
-                lcm_obj = add_software_lcm(diffsync=diffsync, platform="netscaler", version=attrs["version"])
+                lcm_obj = add_software_lcm(diffsync=diffsync, platform_name="citrix.adc", version=attrs["version"])
                 assign_version_to_device(diffsync=diffsync, device=new_device, software_lcm=lcm_obj)
         if attrs.get("hanode"):
             new_device.custom_field_data["ha_node"] = attrs["hanode"]
@@ -119,7 +119,7 @@ class NautobotDevice(Device):
         if "version" in attrs:
             device.custom_field_data.update({"os_version": attrs["version"]})
             if LIFECYCLE_MGMT:
-                lcm_obj = add_software_lcm(diffsync=self.diffsync, platform="netscaler", version=attrs["version"])
+                lcm_obj = add_software_lcm(diffsync=self.diffsync, platform_name="citrix.adc", version=attrs["version"])
                 assign_version_to_device(diffsync=self.diffsync, device=device, software_lcm=lcm_obj)
         if "hanode" in attrs:
             device.custom_field_data["ha_node"] = attrs["hanode"]
