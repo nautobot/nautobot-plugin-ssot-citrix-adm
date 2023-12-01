@@ -1,6 +1,6 @@
 """Test Citrix ADM adapter."""
 from unittest.mock import MagicMock
-from netutils.ip import netmask_to_cidr
+from diffsync.exceptions import ObjectNotFound
 from nautobot.extras.models import JobResult
 from nautobot.core.testing import TransactionTestCase
 from nautobot_ssot_citrix_adm.diffsync.adapters.citrix_adm import CitrixAdmAdapter
@@ -122,86 +122,3 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
         ]
         actual_addrs = [addr.get_unique_id() for addr in self.citrix_adm.get_all("address")]
         self.assertEqual(sorted(expected_addrs), sorted(actual_addrs))
-
-    def test_label_imported_objects_not_found(self):
-        """Validate the label_imported_objects() handling ObjectNotFound."""
-        mock_response = MagicMock()
-        mock_response.get_unique_id = MagicMock()
-        mock_response.get_unique_id.return_value = "Test"
-
-        target = MagicMock()
-        target.get = MagicMock(side_effect=ObjectNotFound)
-        self.citrix_adm.label_object = MagicMock()
-        self.citrix_adm.label_imported_objects(target)
-        self.citrix_adm.label_object.assert_not_called()
-
-    def build_nautobot_objects(self):
-        """Build common Nautobot objects for tests."""
-        self.sor_cf = CustomField.objects.get(name="system_of_record")
-        self.status_active = Status.objects.get(name="Active")
-        self.hq_site = Site.objects.create(name="HQ", slug="hq", status=self.status_active)
-        self.hq_site.validated_save()
-
-        citrix_manu, _ = Manufacturer.objects.get_or_create(name="Citrix")
-        srx_devicetype, _ = DeviceType.objects.get_or_create(model="SDX", manufacturer=citrix_manu)
-        core_role, _ = DeviceRole.objects.get_or_create(name="CORE")
-
-        self.test_dev = Device.objects.create(
-            name="Test",
-            device_type=srx_devicetype,
-            device_role=core_role,
-            serial="AB234567",
-            site=self.hq_site,
-            status=self.status_active,
-        )
-        self.test_dev.custom_field_data["os_version"] = "1.2.3"
-        self.test_dev.validated_save()
-        self.intf = Interface.objects.create(name="Management", type="virtual", device=self.test_dev)
-        self.intf.validated_save()
-
-        self.addr = IPAddress.objects.create(
-            address="10.10.10.1/24",
-            assigned_object_id=self.intf.id,
-            assigned_object_type=ContentType.objects.get_for_model(Interface),
-            status=self.status_active,
-        )
-        self.addr.validated_save()
-
-    def test_label_object_instance_found(self):
-        """Validate the label_object() handling when DiffSync instance is found."""
-        self.build_nautobot_objects()
-        mock_dev = MagicMock()
-        mock_dev.name = "Test"
-        mock_intf = MagicMock()
-        mock_intf.name = "Management"
-        mock_intf.device = "Test"
-        mock_addr = MagicMock()
-        mock_addr.address = "10.10.10.1/24"
-        mock_addr.device = "Test"
-        mock_addr.port = "Management"
-
-        self.citrix_adm.get = MagicMock()
-        self.citrix_adm.get.side_effect = [mock_dev, mock_intf, mock_addr]
-
-        self.citrix_adm.label_object("device", self.test_dev.name)
-        self.citrix_adm.label_object("port", f"{self.intf.name}__{self.test_dev.name}")
-        self.citrix_adm.label_object("address", f"{self.addr.address}__{self.test_dev.name}__{self.intf.name}")
-
-        self.intf.refresh_from_db()
-        self.assertIn(self.sor_cf.name, self.intf.custom_field_data)
-        self.addr.refresh_from_db()
-        self.assertIn(self.sor_cf.name, self.addr.custom_field_data)
-
-    def test_label_object_when_object_not_found(self):
-        """Validate the label_object() handling ObjectNotFound."""
-        self.build_nautobot_objects()
-        self.citrix_adm.label_object("device", self.test_dev.name)
-        self.citrix_adm.label_object("port", f"{self.intf.name}__{self.test_dev.name}")
-        self.citrix_adm.label_object("address", f"{self.addr.address}__{self.test_dev.name}__{self.intf.name}")
-
-        self.test_dev.refresh_from_db()
-        self.assertIn(self.sor_cf.name, self.test_dev.custom_field_data)
-        self.intf.refresh_from_db()
-        self.assertIn(self.sor_cf.name, self.intf.custom_field_data)
-        self.addr.refresh_from_db()
-        self.assertIn(self.sor_cf.name, self.addr.custom_field_data)

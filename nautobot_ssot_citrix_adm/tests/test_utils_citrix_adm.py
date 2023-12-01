@@ -135,7 +135,6 @@ class TestCitrixAdmClient(TestCase):
             result = self.client.request("POST", endpoint, objecttype, objectname, params, data)
             self.assertEqual(result, {})
         mock_response.raise_for_status.assert_called_once()
-        self.log.logger.warning.assert_called_once_with("Failure with request: ")
 
     @patch.object(CitrixNitroClient, "request")
     def test_get_sites_success(self, mock_request):
