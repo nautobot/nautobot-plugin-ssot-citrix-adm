@@ -193,12 +193,16 @@ class CitrixAdmAdapter(DiffSync):
         Args:
             prefix (str): Prefix to be loaded.
         """
+        if self.tenant:
+            namespace = self.tenant
+        else:
+            namespace = "Global"
         try:
-            self.get(self.prefix, {"prefix": prefix, "namespace": self.tenant})
+            self.get(self.prefix, {"prefix": prefix, "namespace": namespace})
         except ObjectNotFound:
             new_pf = self.prefix(
                 prefix=prefix,
-                namespace=self.tenant if self.tenant else "Global",
+                namespace=namespace,
                 tenant=self.tenant,
                 uuid=None,
             )
