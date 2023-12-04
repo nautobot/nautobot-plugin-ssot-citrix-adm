@@ -283,7 +283,7 @@ class NautobotIPAddressOnInterface(IPAddressOnInterface):
     def create(cls, diffsync, ids, attrs):
         """Create IPAddressToInterface in Nautobot from IPAddressOnInterface object."""
         new_map = IPAddressToInterface(
-            ip_address=ids["address"],
+            ip_address=IPAddress.objects.get(address=ids["address"]),
             interface=Interface.objects.get(name=ids["port"], device__name=ids["device"]),
         )
         new_map.validated_save()
