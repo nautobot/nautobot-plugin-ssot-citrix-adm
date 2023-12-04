@@ -54,7 +54,8 @@ class NautobotAdapter(DiffSync):
         """Load Sites from Nautobot into DiffSync models."""
         site_loctype = LocationType.objects.get(name="Site")
         for site in Location.objects.filter(location_type=site_loctype):
-            self.job.logger.info(f"Loading Site {site.name} from Nautobot.")
+            if self.job.debug:
+                self.job.logger.info(f"Loading Site {site.name} from Nautobot.")
             new_dc = self.datacenter(
                 name=site.name,
                 region=site.parent.name if site.parent else "",
@@ -69,7 +70,8 @@ class NautobotAdapter(DiffSync):
         for dev in OrmDevice.objects.select_related("device_type", "location", "status").filter(
             _custom_field_data__system_of_record="Citrix ADM"
         ):
-            self.job.logger.info(f"Loading Device {dev.name} from Nautobot.")
+            if self.job.debug:
+                self.job.logger.info(f"Loading Device {dev.name} from Nautobot.")
             version = dev._custom_field_data["os_version"]
             hanode = dev._custom_field_data.get("ha_node")
             if LIFECYCLE_MGMT:
@@ -162,7 +164,8 @@ class NautobotAdapter(DiffSync):
         for grouping in ["addresses", "prefixes", "ports", "devices"]:
             for nautobot_obj in self.objects_to_delete[grouping]:
                 try:
-                    self.job.logger.info(f"Deleting {nautobot_obj}.")
+                    if self.job.debug:
+                        self.job.logger.info(f"Deleting {nautobot_obj}.")
                     nautobot_obj.delete()
                 except ProtectedError:
                     self.job.logger.info(f"Deletion failed protected object: {nautobot_obj}")
