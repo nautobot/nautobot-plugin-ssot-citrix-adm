@@ -140,15 +140,11 @@ class NautobotAdapter(DiffSync):
             )
             self.add(new_ip)
             for mapping in IPAddressToInterface.objects.filter(ip_address=addr):
-                if addr.ip_version == 4:
-                    primary = hasattr(addr, "primary_ip4_for")
-                else:
-                    primary = hasattr(addr, "primary_ip6_for")
                 new_mapping = self.ip_on_intf(
                     address=str(addr.address),
                     device=mapping.interface.device.name,
                     port=mapping.interface.name,
-                    primary=primary,
+                    primary=len(addr.primary_ip4_for.all()) > 0 or len(addr.primary_ip6_for.all()) > 0,
                     uuid=mapping.id,
                 )
                 self.add(new_mapping)
