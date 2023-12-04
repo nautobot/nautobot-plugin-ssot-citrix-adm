@@ -1,4 +1,5 @@
 """Nautobot SSoT Citrix ADM Adapter for Citrix ADM SSoT plugin."""
+import ipaddress
 from django.conf import settings
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
@@ -8,6 +9,7 @@ from nautobot_ssot_citrix_adm.diffsync.models.citrix_adm import (
     CitrixAdmDatacenter,
     CitrixAdmDevice,
     CitrixAdmPort,
+    CitrixAdmSubnet,
     CitrixAdmAddress,
 )
 from nautobot_ssot_citrix_adm.utils.citrix_adm import (
@@ -28,9 +30,10 @@ class CitrixAdmAdapter(DiffSync):
     datacenter = CitrixAdmDatacenter
     device = CitrixAdmDevice
     address = CitrixAdmAddress
+    prefix = CitrixAdmSubnet
     port = CitrixAdmPort
 
-    top_level = ["datacenter", "device", "address"]
+    top_level = ["datacenter", "device", "prefix", "address"]
 
     def __init__(self, *args, job: Job, sync=None, client: CitrixNitroClient, tenant: str = "", **kwargs):
         """Initialize Citrix ADM.
@@ -190,7 +193,23 @@ class CitrixAdmAdapter(DiffSync):
         self.add(new_port)
         return new_port
 
-    def load_address(self, address: str, device: str, port: str, primary: bool = False, tags: list = []):
+    def load_prefix(self, prefix: str):
+        """Load CitrixAdmSubnet DiffSync model with specified data.
+
+        Args:
+            prefix (str): Prefix to be loaded.
+        """
+        try:
+            self.get(self.prefix, {"prefix": prefix, "namespace": self.tenant})
+        except ObjectNotFound:
+            new_pf = self.prefix(
+                prefix=prefix,
+                namespace=self.tenant if self.tenant else "Global",
+                tenant=self.tenant,
+                uuid=None,
+            )
+            self.add(new_pf)
+
         """Load CitrixAdmAddress DiffSync model with specified data.
 
         Args:

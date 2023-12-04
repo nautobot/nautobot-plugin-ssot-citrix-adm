@@ -7,12 +7,13 @@ from django.db.models import ProtectedError
 from nautobot.dcim.models import Device as OrmDevice
 from nautobot.dcim.models import Interface, Location, LocationType
 from nautobot.extras.models import Job, Relationship, RelationshipAssociation
-from nautobot.ipam.models import IPAddress, IPAddressToInterface
+from nautobot.ipam.models import IPAddress, IPAddressToInterface, Prefix
 from nautobot_ssot_citrix_adm.diffsync.models.nautobot import (
     NautobotAddress,
     NautobotDatacenter,
     NautobotDevice,
     NautobotPort,
+    NautobotSubnet,
 )
 from nautobot_ssot_citrix_adm.utils import nautobot
 
@@ -30,9 +31,10 @@ class NautobotAdapter(DiffSync):
     datacenter = NautobotDatacenter
     device = NautobotDevice
     port = NautobotPort
+    prefix = NautobotSubnet
     address = NautobotAddress
 
-    top_level = ["datacenter", "device", "address"]
+    top_level = ["datacenter", "device", "prefix", "address"]
 
     def __init__(self, *args, job: Job, sync=None, **kwargs):
         """Initialize Nautobot.
@@ -113,6 +115,17 @@ class NautobotAdapter(DiffSync):
                     f"Unable to find {intf.device.name} loaded so skipping loading port {intf.name}."
                 )
 
+    def load_prefixes(self):
+        """Load Prefixes from Nautobot into DiffSync models."""
+        for pf in Prefix.objects.filter(_custom_field_data__system_of_record="Citrix ADM"):
+            new_pf = self.prefix(
+                prefix=str(pf.prefix),
+                namespace=pf.namespace.name,
+                tenant=pf.tenant.name if pf.tenant else None,
+                uuid=pf.id,
+            )
+            self.add(new_pf)
+
     def load_addresses(self):
         """Load IP Addresses from Nautobot into DiffSync models."""
         for addr in IPAddress.objects.filter(_custom_field_data__system_of_record="Citrix ADM"):
@@ -122,6 +135,7 @@ class NautobotAdapter(DiffSync):
                 primary = hasattr(addr, "primary_ip6_for")
             new_ip = self.address(
                 address=str(addr.address),
+                prefix=str(addr.parent.prefix),
                 device="",
                 port="",
                 primary=primary,
@@ -144,7 +158,7 @@ class NautobotAdapter(DiffSync):
             source: The DiffSync whose data was used to update this instance.
             diff: The Diff calculated prior to the sync operation.
         """
-        for grouping in ["addresses", "ports", "devices"]:
+        for grouping in ["addresses", "prefixes", "ports", "devices"]:
             for nautobot_obj in self.objects_to_delete[grouping]:
                 try:
                     self.job.logger.info(f"Deleting {nautobot_obj}.")
@@ -159,4 +173,5 @@ class NautobotAdapter(DiffSync):
         self.load_sites()
         self.load_devices()
         self.load_ports()
+        self.load_prefixes()
         self.load_addresses()

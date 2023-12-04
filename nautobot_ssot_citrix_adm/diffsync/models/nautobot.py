@@ -5,9 +5,9 @@ from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import Device as NewDevice
 from nautobot.dcim.models import DeviceType, Location, LocationType, Manufacturer, Interface, Platform
 from nautobot.extras.models import Role, Status
-from nautobot.ipam.models import IPAddress, IPAddressToInterface
+from nautobot.ipam.models import IPAddress, IPAddressToInterface, Namespace, Prefix
 from nautobot.tenancy.models import Tenant
-from nautobot_ssot_citrix_adm.diffsync.models.base import Datacenter, Device, Port, Address
+from nautobot_ssot_citrix_adm.diffsync.models.base import Datacenter, Device, Port, Subnet, Address
 from nautobot_ssot_citrix_adm.utils.nautobot import add_software_lcm, assign_version_to_device
 
 try:
@@ -177,6 +177,49 @@ class NautobotPort(Port):
         return self
 
 
+class NautobotSubnet(Subnet):
+    """Nautobot implementation of Citrix ADM Subnet model."""
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create Prefix in Nautobot from NautobotSubnet object."""
+        namespace = Namespace.objects.get_or_create(name=ids["namespace"])[0]
+        if diffsync.job.debug:
+            diffsync.job.logger.info(f"Creating Prefix {ids['prefix']}.")
+        _pf = Prefix(
+            prefix=ids["prefix"],
+            namespace=namespace,
+            status=Status.objects.get(name="Active"),
+            tenant_id=Tenant.objects.get(name=attrs["tenant"]) if attrs.get("tenant") else None,
+        )
+        _pf.custom_field_data.update({"system_of_record": "Citrix ADM"})
+        _pf.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
+        _pf.validated_save()
+        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+
+    def update(self, attrs):
+        """Update IP Address in Nautobot from NautobotAddress object."""
+        pf = Prefix.objects.get(id=self.uuid)
+        if "tenant" in attrs:
+            if attrs.get("tenant"):
+                pf.tenant = Tenant.objects.get(name=attrs["tenant"])
+            else:
+                pf.tenant = None
+        pf.validated_save()
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete Prefix in Nautobot."""
+        try:
+            _pf = Prefix.objects.get(id=self.uuid)
+            self.diffsync.objects_to_delete["prefixes"].append(_pf)
+            super().delete()
+            return self
+        except Prefix.DoesNotExist as err:
+            if self.diffsync.job.debug:
+                self.diffsync.job.logger.warning(f"Unable to find Prefix {self.prefix} {self.uuid} for deletion. {err}")
+
+
 class NautobotAddress(Address):
     """Nautobot implementation of Citrix ADM Address model."""
 
@@ -187,7 +230,11 @@ class NautobotAddress(Address):
         interface = Interface.objects.get(name=ids["port"], device=device)
         new_ip = IPAddress(
             address=ids["address"],
+            parent=Prefix.objects.get(prefix=ids["prefix"]),
             status=Status.objects.get(name="Active"),
+            namespace=Namespace.objects.get_or_create(name=attrs["tenant"])
+            if attrs.get("tenant")
+            else Namespace.objects.get(name="Global"),
         )
         if attrs.get("tenant"):
             new_ip.tenant = Tenant.objects.update_or_create(name=attrs["tenant"])[0]

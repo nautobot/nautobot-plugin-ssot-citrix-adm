@@ -71,15 +71,31 @@ class Port(DiffSyncModel):
     uuid: Optional[UUID]
 
 
+class Subnet(DiffSyncModel):
+    """DiffSync model for Citrix ADM management prefixes."""
+
+    _modelname = "prefix"
+    _identifiers = ("prefix", "namespace")
+    _attributes = ("tenant",)
+    _children = {}
+
+    prefix: str
+    namespace: str
+    tenant: Optional[str]
+
+    uuid: Optional[UUID]
+
+
 class Address(DiffSyncModel):
     """DiffSync model for Citrix ADM management addresses."""
 
     _modelname = "address"
-    _identifiers = ("address", "device", "port")
+    _identifiers = ("address", "prefix", "device", "port")
     _attributes = ("primary", "tenant", "tags")
     _children = {}
 
     address: str
+    prefix: str
     device: str
     port: str
     primary: bool
