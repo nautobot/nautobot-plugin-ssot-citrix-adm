@@ -106,20 +106,33 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
         actual_ports = [port.get_unique_id() for port in self.citrix_adm.get_all("port")]
         self.assertEqual(sorted(expected_ports), sorted(actual_ports))
 
-    def test_port_addresses_loaded(self):
-        """Test the Nautobot SSoT Citrix ADM loads port addresses."""
+    def test_load_addresses(self):
+        """Test the Nautobot SSoT Citrix ADM load_addresses() function."""
         self.citrix_adm.adm_device_map = ADM_DEVICE_MAP_FIXTURE
-        self.citrix_adm.get = MagicMock()
-        self.citrix_adm.get.side_effect = [ObjectNotFound, ObjectNotFound]
-        self.citrix_adm.adm_device_map = ADM_DEVICE_MAP_FIXTURE
-        self.citrix_adm.get = MagicMock()
-        self.citrix_adm.get.side_effect = [ObjectNotFound, ObjectNotFound]
+        self.citrix_adm.load_prefix = MagicMock()
+        self.citrix_adm.load_address = MagicMock()
         self.citrix_adm.load_addresses()
-        expected_addrs = [
-            f"{port['ipaddress']}/{port['netmask']}__{adc['hostname']}__{port['port']}"
-            for _, adc in self.citrix_adm.adm_device_map.items()
-            for port in adc["ports"]
-            if port.get("ipaddress")
-        ]
-        actual_addrs = [addr.get_unique_id() for addr in self.citrix_adm.get_all("address")]
-        self.assertEqual(sorted(expected_addrs), sorted(actual_addrs))
+        self.citrix_adm.load_prefix.assert_called_with(prefix="192.168.1.0/24")
+        self.citrix_adm.load_address.assert_called_with(
+            address="192.168.1.5/24",
+            prefix="192.168.1.0/24",
+            device="TEST",
+            port="0/1",
+            tags=["MGMT"],
+            primary=True,
+        )
+
+    def test_load_prefix(self):
+        """Test the Nautobot SSoT Citrix ADM load_prefix() function."""
+        self.citrix_adm.load_prefix(prefix="10.0.0.0/16")
+        self.assertEqual({"10.0.0.0/16__Global"}, {pf.get_unique_id() for pf in self.citrix_adm.get_all("prefix")})
+
+    def test_load_address(self):
+        """Test the Nautobot SSoT Citrix ADM load_address() function."""
+        self.citrix_adm.load_address(
+            address="10.0.0.1/24", prefix="10.0.0.0/24", device="TEST", port="mgmt", primary=True, tags=["TEST"]
+        )
+        self.assertEqual(
+            {"10.0.0.1/24__10.0.0.0/24__TEST__mgmt"},
+            {addr.get_unique_id() for addr in self.citrix_adm.get_all("address")},
+        )
