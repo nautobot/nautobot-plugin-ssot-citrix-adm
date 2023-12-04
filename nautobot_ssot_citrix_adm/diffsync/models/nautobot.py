@@ -4,7 +4,7 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import Device as NewDevice
 from nautobot.dcim.models import DeviceType, Location, LocationType, Manufacturer, Interface, Platform
-from nautobot.extras.models import Role, Status
+from nautobot.extras.models import Role, Status, Tag
 from nautobot.ipam.models import IPAddress, IPAddressToInterface, Namespace, Prefix
 from nautobot.tenancy.models import Tenant
 from nautobot_ssot_citrix_adm.diffsync.models.base import (
@@ -245,6 +245,9 @@ class NautobotAddress(Address):
             new_ip.tenant = Tenant.objects.update_or_create(name=attrs["tenant"])[0]
         if attrs.get("tags"):
             new_ip.tags.set(attrs["tags"])
+            for tag in attrs["tags"]:
+                new_tag = Tag.objects.get(name=tag)
+                new_tag.content_types.add(ContentType.objects.get_for_model(NewDevice))
         new_ip.custom_field_data["system_of_record"] = "Citrix ADM"
         new_ip.custom_field_data["ssot_last_synchronized"] = datetime.today().date().isoformat()
         new_ip.validated_save()
@@ -260,6 +263,9 @@ class NautobotAddress(Address):
                 addr.tenant = None
         if "tags" in attrs:
             addr.tags.set(attrs["tags"])
+            for tag in attrs["tags"]:
+                new_tag = Tag.objects.get(name=tag)
+                new_tag.content_types.add(ContentType.objects.get_for_model(NewDevice))
         else:
             addr.tags.clear()
         addr.custom_field_data["system_of_record"] = "Citrix ADM"
