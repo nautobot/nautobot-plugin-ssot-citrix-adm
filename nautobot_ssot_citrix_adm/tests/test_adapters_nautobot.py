@@ -151,8 +151,8 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.nb_adapter.load_addresses()
         self.assertEqual(
             {
-                "10.1.1.1/24__10.1.1.0/24__edge-fw.test.com__Management",
-                "2001:db8:3333:4444:5555:6666:7777:8888/128__2001:db8:3333:4444:5555:6666:7777:8888/128__edge-fw.test.com__Management",
+                "10.1.1.1/24__10.1.1.0/24",
+                "2001:db8:3333:4444:5555:6666:7777:8888/128__2001:db8:3333:4444:5555:6666:7777:8888/128",
             },
             {addr.get_unique_id() for addr in self.nb_adapter.get_all("address")},
         )
