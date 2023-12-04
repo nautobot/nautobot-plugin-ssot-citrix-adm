@@ -14,6 +14,7 @@ from nautobot_ssot_citrix_adm.diffsync.models.nautobot import (
     NautobotDevice,
     NautobotPort,
     NautobotSubnet,
+    NautobotIPAddressOnInterface,
 )
 from nautobot_ssot_citrix_adm.utils import nautobot
 
@@ -33,8 +34,9 @@ class NautobotAdapter(DiffSync):
     port = NautobotPort
     prefix = NautobotSubnet
     address = NautobotAddress
+    ip_on_intf = NautobotIPAddressOnInterface
 
-    top_level = ["datacenter", "device", "prefix", "address"]
+    top_level = ["datacenter", "device", "prefix", "address", "ip_on_intf"]
 
     def __init__(self, *args, job: Job, sync=None, **kwargs):
         """Initialize Nautobot.
@@ -129,24 +131,27 @@ class NautobotAdapter(DiffSync):
     def load_addresses(self):
         """Load IP Addresses from Nautobot into DiffSync models."""
         for addr in IPAddress.objects.filter(_custom_field_data__system_of_record="Citrix ADM"):
-            if addr.ip_version == 4:
-                primary = hasattr(addr, "primary_ip4_for")
-            else:
-                primary = hasattr(addr, "primary_ip6_for")
             new_ip = self.address(
                 address=str(addr.address),
                 prefix=str(addr.parent.prefix),
-                device="",
-                port="",
-                primary=primary,
-                tenant=addr.tenant.name if addr.tenant else "",
+                tenant=addr.tenant.name if addr.tenant else None,
                 uuid=addr.id,
                 tags=nautobot.get_tag_strings(addr.tags),
             )
+            self.add(new_ip)
             for mapping in IPAddressToInterface.objects.filter(ip_address=addr):
-                new_ip.device = mapping.interface.device.name
-                new_ip.port = mapping.interface.name
-                self.add(new_ip)
+                if addr.ip_version == 4:
+                    primary = hasattr(addr, "primary_ip4_for")
+                else:
+                    primary = hasattr(addr, "primary_ip6_for")
+                new_mapping = self.ip_on_intf(
+                    address=str(addr.address),
+                    device=mapping.interface.device.name,
+                    port=mapping.interface.name,
+                    primary=primary,
+                    uuid=mapping.id,
+                )
+                self.add(new_mapping)
 
     def sync_complete(self, source: DiffSync, diff, *args, **kwargs):
         """Label and clean up function for DiffSync sync.

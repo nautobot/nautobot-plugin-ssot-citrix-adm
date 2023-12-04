@@ -7,7 +7,14 @@ from nautobot.dcim.models import DeviceType, Location, LocationType, Manufacture
 from nautobot.extras.models import Role, Status
 from nautobot.ipam.models import IPAddress, IPAddressToInterface, Namespace, Prefix
 from nautobot.tenancy.models import Tenant
-from nautobot_ssot_citrix_adm.diffsync.models.base import Datacenter, Device, Port, Subnet, Address
+from nautobot_ssot_citrix_adm.diffsync.models.base import (
+    Datacenter,
+    Device,
+    Port,
+    Subnet,
+    Address,
+    IPAddressOnInterface,
+)
 from nautobot_ssot_citrix_adm.utils.nautobot import add_software_lcm, assign_version_to_device
 
 try:
@@ -226,8 +233,6 @@ class NautobotAddress(Address):
     @classmethod
     def create(cls, diffsync, ids, attrs):
         """Create IP Address in Nautobot from NautobotAddress object."""
-        device = NewDevice.objects.get(name=ids["device"])
-        interface = Interface.objects.get(name=ids["port"], device=device)
         new_ip = IPAddress(
             address=ids["address"],
             parent=Prefix.objects.get(prefix=ids["prefix"]),
@@ -243,25 +248,11 @@ class NautobotAddress(Address):
         new_ip.custom_field_data["system_of_record"] = "Citrix ADM"
         new_ip.custom_field_data["ssot_last_synchronized"] = datetime.today().date().isoformat()
         new_ip.validated_save()
-        IPAddressToInterface.objects.create(ip_address=new_ip, interface=interface)
-        if attrs.get("primary"):
-            if new_ip.ip_version == 4:
-                device.primary_ip4 = new_ip
-            else:
-                device.primary_ip6 = new_ip
-            device.validated_save()
         return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
 
     def update(self, attrs):
         """Update IP Address in Nautobot from NautobotAddress object."""
         addr = IPAddress.objects.get(id=self.uuid)
-        if "primary" in attrs:
-            device = NewDevice.objects.get(name=self.device)
-            if addr.ip_version == 4:
-                device.primary_ip4 = addr
-            else:
-                device.primary_ip6 = addr
-            device.validated_save()
         if "tenant" in attrs:
             if attrs.get("tenant"):
                 addr.tenant = Tenant.objects.update_or_create(name=attrs["tenant"])[0]
@@ -282,4 +273,46 @@ class NautobotAddress(Address):
         super().delete()
         self.diffsync.job.logger.info(f"Deleting IP Address {self}.")
         self.diffsync.objects_to_delete["addresses"].append(addr)
+        return self
+
+
+class NautobotIPAddressOnInterface(IPAddressOnInterface):
+    """Nautobot implementation of Citrix ADM IPAddressOnInterface model."""
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create IPAddressToInterface in Nautobot from IPAddressOnInterface object."""
+        new_map = IPAddressToInterface(
+            ip_address=ids["address"],
+            interface=Interface.objects.get(name=ids["port"], device__name=ids["device"]),
+        )
+        new_map.validated_save()
+        if attrs.get("primary"):
+            if new_map.ip_address.ip_version == 4:
+                new_map.interface.device.primary_ip4 = new_map.ip_address
+            else:
+                new_map.interface.device.primary_ip6 = new_map.ip_address
+            new_map.interface.device.validated_save()
+        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+
+    def update(self, attrs):
+        """Update IP Address in Nautobot from IPAddressOnInterface object."""
+        mapping = IPAddressToInterface.objects.get(id=self.uuid)
+        if attrs.get("primary"):
+            if mapping.ip_address.ip_version == 4:
+                mapping.interface.device.primary_ip4 = mapping.ip_address
+            else:
+                mapping.interface.device.primary_ip6 = mapping.ip_address
+            mapping.interface.device.validated_save()
+        mapping.validated_save()
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete IPAddressToInterface in Nautobot from NautobotIPAddressOnInterface object."""
+        mapping = IPAddressToInterface.objects.get(id=self.uuid)
+        super().delete()
+        self.diffsync.job.logger.info(
+            f"Deleting IPAddress to Interface mapping between {self.address} and {self.device}'s {self.port} port."
+        )
+        mapping.delete()
         return self

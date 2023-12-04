@@ -11,6 +11,7 @@ from nautobot_ssot_citrix_adm.diffsync.models.citrix_adm import (
     CitrixAdmPort,
     CitrixAdmSubnet,
     CitrixAdmAddress,
+    CitrixAdmIPAddressOnInterface,
 )
 from nautobot_ssot_citrix_adm.utils.citrix_adm import (
     parse_hostname_for_role,
@@ -32,8 +33,9 @@ class CitrixAdmAdapter(DiffSync):
     address = CitrixAdmAddress
     prefix = CitrixAdmSubnet
     port = CitrixAdmPort
+    ip_on_intf = CitrixAdmIPAddressOnInterface
 
-    top_level = ["datacenter", "device", "prefix", "address"]
+    top_level = ["datacenter", "device", "prefix", "address", "ip_on_intf"]
 
     def __init__(self, *args, job: Job, sync=None, client: CitrixNitroClient, tenant: str = "", **kwargs):
         """Initialize Citrix ADM.
@@ -157,9 +159,12 @@ class CitrixAdmAdapter(DiffSync):
                     self.load_address(
                         address=addr,
                         prefix=prefix,
+                        tags=_tags,
+                    )
+                    self.load_address_to_interface(
+                        address=addr,
                         device=adc["hostname"],
                         port=port["port"],
-                        tags=_tags,
                         primary=_primary,
                     )
 
@@ -208,7 +213,7 @@ class CitrixAdmAdapter(DiffSync):
             )
             self.add(new_pf)
 
-    def load_address(self, address: str, prefix: str, device: str, port: str, primary: bool = False, tags: list = []):
+    def load_address(self, address: str, prefix: str, tags: list = []):
         """Load CitrixAdmAddress DiffSync model with specified data.
 
         Args:
@@ -220,27 +225,31 @@ class CitrixAdmAdapter(DiffSync):
             tags (list): List of tags assigned to IP. Defaults to [].
         """
         try:
-            self.get(
-                self.address,
-                {
-                    "address": address,
-                    "prefix": prefix,
-                    "device": device,
-                    "port": port,
-                },
-            )
+            self.get(self.address, {"address": address, "prefix": prefix})
         except ObjectNotFound:
             new_addr = self.address(
                 address=address,
                 prefix=prefix,
-                device=device,
-                port=port,
-                primary=primary,
                 tenant=self.tenant,
                 uuid=None,
                 tags=tags,
             )
             self.add(new_addr)
+
+    def load_address_to_interface(self, address: str, device: str, port: str, primary: bool = False):
+        """Load CitrixAdmIPAddressOnInterface DiffSync model with specified data.
+
+        Args:
+            address (str): IP Address in mapping.
+            device (str): Device that IP resides on.
+            port (str): Interface that IP is configured on.
+            primary (str): Whether the IP is primary IP for assigned device. Defaults to False.
+        """
+        try:
+            self.get(self.ip_on_intf, {"address": address, "device": device, "port": port})
+        except ObjectNotFound:
+            new_map = self.ip_on_intf(address=address, device=device, port=port, primary=primary, uuid=None)
+            self.add(new_map)
 
     def load(self):
         """Load data from Citrix ADM into DiffSync models."""
