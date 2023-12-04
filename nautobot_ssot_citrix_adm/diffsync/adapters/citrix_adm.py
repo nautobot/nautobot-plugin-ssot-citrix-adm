@@ -75,7 +75,7 @@ class CitrixAdmAdapter(DiffSync):
                 self.job.logger.info(f"Attempting to load DC: {site_info['name']}")
             new_site = self.datacenter(
                 name=site_info["name"],
-                region=site_info["region"],
+                region=site_info["region"] if site_info.get("region") else "Global",
                 latitude=site_info["latitude"][:9].rstrip("0") if site_info.get("latitude") else "",
                 longitude=site_info["longitude"][:9].rstrip("0") if site_info.get("longitude") else "",
                 uuid=None,
