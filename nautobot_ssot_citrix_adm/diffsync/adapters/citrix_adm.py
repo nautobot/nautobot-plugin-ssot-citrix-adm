@@ -147,27 +147,21 @@ class CitrixAdmAdapter(DiffSync):
         for _, adc in self.adm_device_map.items():
             for port in adc["ports"]:
                 if port.get("ipaddress"):
-                    try:
-                        self.get(
-                            self.address,
-                            {
-                                "address": f"{port['ipaddress']}/{port['netmask']}",
-                                "device": adc["hostname"],
-                                "port": port["port"],
-                            },
-                        )
-                    except ObjectNotFound:
-                        _tags = port["tags"] if port.get("tags") else []
-                        if len(_tags) > 1:
-                            _tags.sort()
-                        _primary = True if "MGMT" in _tags or "MIP" in _tags else False
-                        self.load_address(
-                            address=f"{port['ipaddress']}/{port['netmask']}",
-                            device=adc["hostname"],
-                            port=port["port"],
-                            tags=_tags,
-                            primary=_primary,
-                        )
+                    addr = f"{port['ipaddress']}/{port['netmask']}"
+                    prefix = ipaddress.ip_interface(addr).network.with_prefixlen
+                    self.load_prefix(prefix=prefix)
+                    _tags = port["tags"] if port.get("tags") else []
+                    if len(_tags) > 1:
+                        _tags.sort()
+                    _primary = True if "MGMT" in _tags or "MIP" in _tags else False
+                    self.load_address(
+                        address=addr,
+                        prefix=prefix,
+                        device=adc["hostname"],
+                        port=port["port"],
+                        tags=_tags,
+                        primary=_primary,
+                    )
 
     def add_port(
         self, dev_name: str, port_name: str = "Management", port_status: str = "ENABLED", description: str = ""
@@ -210,19 +204,39 @@ class CitrixAdmAdapter(DiffSync):
             )
             self.add(new_pf)
 
+    def load_address(self, address: str, prefix: str, device: str, port: str, primary: bool = False, tags: list = []):
         """Load CitrixAdmAddress DiffSync model with specified data.
 
         Args:
             address (str): IP Address to be loaded.
+            prefix (str): Prefix that IP Address resides in.
             device (str): Device that IP resides on.
             port (str): Interface that IP is configured on.
             primary (str): Whether the IP is primary IP for assigned device. Defaults to False.
             tags (list): List of tags assigned to IP. Defaults to [].
         """
-        new_addr = self.address(
-            address=address, device=device, port=port, primary=primary, tenant=self.tenant, uuid=None, tags=tags
-        )
-        self.add(new_addr)
+        try:
+            self.get(
+                self.address,
+                {
+                    "address": address,
+                    "prefix": prefix,
+                    "device": device,
+                    "port": port,
+                },
+            )
+        except ObjectNotFound:
+            new_addr = self.address(
+                address=address,
+                prefix=prefix,
+                device=device,
+                port=port,
+                primary=primary,
+                tenant=self.tenant,
+                uuid=None,
+                tags=tags,
+            )
+            self.add(new_addr)
 
     def load(self):
         """Load data from Citrix ADM into DiffSync models."""
