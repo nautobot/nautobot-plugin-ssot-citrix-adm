@@ -27,7 +27,7 @@ def add_software_lcm(diffsync, platform_name: str, version: str):
     """
     platform = Platform.objects.get(name=platform_name)
     try:
-        os_ver = SoftwareLCM.objects.get(device_platform=platform_name, version=version).id
+        os_ver = SoftwareLCM.objects.get(device_platform=platform, version=version)
     except SoftwareLCM.DoesNotExist:
         diffsync.job.logger.info(f"Creating Version {version} for {platform_name}.")
         os_ver = SoftwareLCM(
@@ -35,8 +35,7 @@ def add_software_lcm(diffsync, platform_name: str, version: str):
             version=version,
         )
         os_ver.validated_save()
-        os_ver = os_ver.id
-    return os_ver
+    return os_ver.id
 
 
 def assign_version_to_device(diffsync, device: Device, software_lcm: UUID):
