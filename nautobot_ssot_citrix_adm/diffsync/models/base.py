@@ -19,8 +19,8 @@ class Datacenter(DiffSyncModel):
 
     name: str
     region: Optional[str]
-    latitude: Optional[str]
-    longitude: Optional[str]
+    latitude: Optional[float]
+    longitude: Optional[float]
     uuid: Optional[UUID]
 
 

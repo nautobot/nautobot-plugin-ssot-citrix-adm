@@ -1,4 +1,5 @@
 """Nautobot SSoT Citrix ADM Adapter for Citrix ADM SSoT plugin."""
+from decimal import Decimal
 import ipaddress
 from django.conf import settings
 from diffsync import DiffSync
@@ -79,8 +80,8 @@ class CitrixAdmAdapter(DiffSync):
             new_site = self.datacenter(
                 name=site_info["name"],
                 region=site_info["region"] if site_info.get("region") else "Global",
-                latitude=site_info["latitude"][:9].rstrip("0") if site_info.get("latitude") else "",
-                longitude=site_info["longitude"][:9].rstrip("0") if site_info.get("longitude") else "",
+                latitude=float(round(Decimal(site_info["latitude"] if site_info["latitude"] else 0.0), 6)),
+                longitude=float(round(Decimal(site_info["longitude"] if site_info["longitude"] else 0.0), 6)),
                 uuid=None,
             )
             self.add(new_site)
