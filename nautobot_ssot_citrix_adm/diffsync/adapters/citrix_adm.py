@@ -67,7 +67,10 @@ class CitrixAdmAdapter(DiffSync):
             site_info (dict): Dictionary containing information about Datacenter to be imported.
         """
         try:
-            found_site = self.get(self.datacenter, {"name": site_info.get("name"), "region": site_info.get("region")})
+            found_site = self.get(
+                self.datacenter,
+                {"name": site_info.get("name"), "region": site_info["region"] if site_info.get("region") else "Global"},
+            )
             if found_site and self.job.debug:
                 self.job.logger.warning(f"Duplicate Site attempting to be loaded: {site_info}.")
         except ObjectNotFound:
