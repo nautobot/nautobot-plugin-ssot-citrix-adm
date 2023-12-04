@@ -230,7 +230,7 @@ class CitrixAdmAdapter(DiffSync):
             new_addr = self.address(
                 address=address,
                 prefix=prefix,
-                tenant=self.tenant,
+                tenant=self.tenant if self.tenant else None,
                 uuid=None,
                 tags=tags,
             )
