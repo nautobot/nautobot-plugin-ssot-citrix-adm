@@ -208,7 +208,7 @@ class CitrixAdmAdapter(DiffSync):
             new_pf = self.prefix(
                 prefix=prefix,
                 namespace=namespace,
-                tenant=self.tenant,
+                tenant=self.tenant if self.tenant else None,
                 uuid=None,
             )
             self.add(new_pf)
