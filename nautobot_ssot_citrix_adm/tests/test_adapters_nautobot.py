@@ -81,6 +81,10 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         mgmt6_pf = Prefix.objects.create(
             prefix="2001:db8:3333:4444:5555:6666:7777:8888/128", namespace=global_ns, status=self.status_active
         )
+        mgmt4_pf._custom_field_data["system_of_record"] = "Citrix ADM"  # pylint: disable=protected-access
+        mgmt4_pf.validated_save()
+        mgmt6_pf._custom_field_data["system_of_record"] = "Citrix ADM"  # pylint: disable=protected-access
+        mgmt6_pf.validated_save()
 
         mgmt_addr = IPAddress.objects.create(
             address="10.1.1.1/24",
@@ -147,10 +151,18 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.nb_adapter.load_addresses()
         self.assertEqual(
             {
-                "10.1.1.1/24__edge-fw.test.com__Management",
-                "2001:db8:3333:4444:5555:6666:7777:8888/128__edge-fw.test.com__Management",
+                "10.1.1.1/24__10.1.1.0/24__edge-fw.test.com__Management",
+                "2001:db8:3333:4444:5555:6666:7777:8888/128__2001:db8:3333:4444:5555:6666:7777:8888/128__edge-fw.test.com__Management",
             },
             {addr.get_unique_id() for addr in self.nb_adapter.get_all("address")},
+        )
+
+    def test_load_prefixes(self):
+        """Test the load_prefix() function."""
+        self.nb_adapter.load_prefixes()
+        self.assertEqual(
+            {"10.1.1.0/24__Global", "2001:db8:3333:4444:5555:6666:7777:8888/128__Global"},
+            {pf.get_unique_id() for pf in self.nb_adapter.get_all("prefix")},
         )
 
     def test_sync_complete(self):
@@ -158,6 +170,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.nb_adapter.objects_to_delete = {
             "devices": [MagicMock()],
             "ports": [MagicMock()],
+            "prefixes": [MagicMock()],
             "addresses": [MagicMock()],
         }
         self.nb_adapter.job = MagicMock()
@@ -172,6 +185,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         for obj in deleted_objs:
             self.assertTrue(obj.delete.called)
         self.assertEqual(len(self.nb_adapter.objects_to_delete["addresses"]), 0)
+        self.assertEqual(len(self.nb_adapter.objects_to_delete["prefixes"]), 0)
         self.assertEqual(len(self.nb_adapter.objects_to_delete["ports"]), 0)
         self.assertEqual(len(self.nb_adapter.objects_to_delete["devices"]), 0)
         self.assertTrue(self.nb_adapter.job.logger.info.called)
@@ -179,6 +193,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.assertTrue(self.nb_adapter.job.logger.info.call_args_list[0].startswith("Deleting"))
         self.assertTrue(self.nb_adapter.job.logger.info.call_args_list[1].startswith("Deleting"))
         self.assertTrue(self.nb_adapter.job.logger.info.call_args_list[2].startswith("Deleting"))
+        self.assertTrue(self.nb_adapter.job.logger.info.call_args_list[3].startswith("Deleting"))
 
     def test_sync_complete_protected_error(self):
         """
@@ -196,9 +211,11 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.nb_adapter.load_sites = MagicMock()
         self.nb_adapter.load_devices = MagicMock()
         self.nb_adapter.load_ports = MagicMock()
+        self.nb_adapter.load_prefixes = MagicMock()
         self.nb_adapter.load_addresses = MagicMock()
         self.nb_adapter.load()
         self.nb_adapter.load_sites.assert_called_once()
         self.nb_adapter.load_devices.assert_called_once()
         self.nb_adapter.load_ports.assert_called_once()
+        self.nb_adapter.load_prefixes.assert_called_once()
         self.nb_adapter.load_addresses.assert_called_once()
