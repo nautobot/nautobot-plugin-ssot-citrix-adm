@@ -257,8 +257,15 @@ class CitrixAdmAdapter(DiffSync):
 
     def load(self):
         """Load data from Citrix ADM into DiffSync models."""
-        base_urls = [PLUGIN_CFG["base_url"], PLUGIN_CFG["additional_url"]]
-        for url in base_urls:
+        urls = []
+        if PLUGIN_CFG.get("base_url"):
+            urls = [PLUGIN_CFG["base_url"]]
+        else:
+            self.job.logger.error("Unable to find URL for ADM instance. Please validate your settings.")
+            raise Exception("Missing URL for ADM instance.")
+        if PLUGIN_CFG.get("additional_url"):
+            urls.append(PLUGIN_CFG["additional_url"])
+        for url in urls:
             # init
             self.conn.url = url
             self.conn.login()
