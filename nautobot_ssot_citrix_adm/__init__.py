@@ -22,7 +22,7 @@ class NautobotSsotCitrixAdmConfig(PluginConfig):
     description = "Nautobot SSoT Citrix ADM."
     base_url = "ssot-citrix-adm"
     required_settings = ["base_url", "username", "password", "verify"]
-    min_version = "2.0.0"
+    min_version = "2.1.0"
     max_version = "2.9999"
     default_settings = {"update_sites": True, "hostname_mapping": []}
     caching_config = {}
