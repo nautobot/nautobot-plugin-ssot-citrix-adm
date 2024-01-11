@@ -4,6 +4,7 @@ from django.conf import settings
 from nautobot.core.celery import register_jobs
 from nautobot.extras.jobs import BooleanVar, Job, MultiObjectVar, ObjectVar
 from nautobot.extras.models import ExternalIntegration
+from nautobot.tenancy.models import Tenant
 from nautobot_ssot.jobs.base import DataSource, DataTarget
 from nautobot_ssot_citrix_adm.diffsync.adapters import citrix_adm, nautobot
 
@@ -23,6 +24,7 @@ class CitrixAdmDataSource(DataSource, Job):  # pylint: disable=too-many-instance
         label="Citrix ADM Instances",
         required=True,
     )
+    tenant = ObjectVar(model=Tenant, queryset=Tenant.objects.all(), display_field="display_name", required=False)
     debug = BooleanVar(description="Enable for more verbose debug logging", default=False)
 
     class Meta:  # pylint: disable=too-few-public-methods
@@ -46,7 +48,7 @@ class CitrixAdmDataSource(DataSource, Job):  # pylint: disable=too-many-instance
     def load_source_adapter(self):
         """Load data from Citrix ADM into DiffSync models."""
         self.source_adapter = citrix_adm.CitrixAdmAdapter(
-            job=self, sync=self.sync, instances=self.instances, tenant=PLUGIN_CFG.get("tenant")
+            job=self, sync=self.sync, instances=self.instances, tenant=self.tenant
         )
         self.source_adapter.load()
 
@@ -56,10 +58,11 @@ class CitrixAdmDataSource(DataSource, Job):  # pylint: disable=too-many-instance
         self.target_adapter.load()
 
     def run(  # pylint: disable=arguments-differ, too-many-arguments
-        self, dryrun, memory_profiling, instances, debug, *args, **kwargs
+        self, dryrun, memory_profiling, instances, tenant, debug, *args, **kwargs
     ):
         """Perform data synchronization."""
         self.instances = instances
+        self.tenant = tenant
         self.debug = debug
         self.dryrun = dryrun
         self.memory_profiling = memory_profiling
@@ -76,6 +79,7 @@ class CitrixAdmDataTarget(DataTarget, Job):
         label="Citrix ADM Instance",
         required=True,
     )
+    tenant = ObjectVar(model=Tenant, queryset=Tenant.objects.all(), display_field="display_name", required=False)
     debug = BooleanVar(description="Enable for more verbose debug logging", default=False)
 
     class Meta:  # pylint: disable=too-few-public-methods
@@ -104,15 +108,16 @@ class CitrixAdmDataTarget(DataTarget, Job):
     def load_target_adapter(self):
         """Load data from Citrix ADM into DiffSync models."""
         self.target_adapter = citrix_adm.CitrixAdmAdapter(
-            job=self, sync=self.sync, instances=self.instance, tenant=PLUGIN_CFG.get("tenant")
+            job=self, sync=self.sync, instances=self.instance, tenant=self.tenant
         )
         self.target_adapter.load()
 
     def run(  # pylint: disable=arguments-differ, too-many-arguments
-        self, dryrun, memory_profiling, instance, debug, *args, **kwargs
+        self, dryrun, memory_profiling, instance, tenant, debug, *args, **kwargs
     ):
         """Perform data synchronization."""
         self.instance = instance
+        self.tenant = tenant
         self.debug = debug
         self.dryrun = dryrun
         self.memory_profiling = memory_profiling

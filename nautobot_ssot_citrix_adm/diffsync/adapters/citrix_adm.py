@@ -1,11 +1,13 @@
 """Nautobot SSoT Citrix ADM Adapter for Citrix ADM SSoT plugin."""
 from decimal import Decimal
+from typing import List, Optional
 import ipaddress
 from django.conf import settings
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
 from nautobot.extras.choices import SecretsGroupAccessTypeChoices, SecretsGroupSecretTypeChoices
-from nautobot.extras.models import Job
+from nautobot.extras.models import Job, ExternalIntegration
+from nautobot.tenancy.models import Tenant
 from nautobot_ssot_citrix_adm.constants import DEVICETYPE_MAP
 from nautobot_ssot_citrix_adm.diffsync.models.citrix_adm import (
     CitrixAdmDatacenter,
@@ -39,14 +41,22 @@ class CitrixAdmAdapter(DiffSync):
 
     top_level = ["datacenter", "device", "prefix", "address", "ip_on_intf"]
 
-    def __init__(self, *args, job: Job, sync=None, instances, tenant: str = "", **kwargs):
+    def __init__(
+        self,
+        *args,
+        job: Job,
+        sync=None,
+        instances: List[ExternalIntegration],
+        tenant: Optional[Tenant] = None,
+        **kwargs,
+    ):
         """Initialize Citrix ADM.
 
         Args:
             job (Job): Citrix ADM job.
             sync (object, optional): Citrix ADM DiffSync. Defaults to None.
-            client (CitrixNitroClient): Citrix ADM API client connection object.
-            tenant (str): Name of Tenant to associate Devices and IP Addresses with.
+            instances (List[ExternalIntegration]): ExternalIntegrations defining Citrix ADM instances.
+            tenant (Tenant, optional): Name of Tenant to associate Devices and IP Addresses with.
         """
         super().__init__(*args, **kwargs)
         self.job = job
@@ -112,7 +122,7 @@ class CitrixAdmAdapter(DiffSync):
                     serial=dev["serialnumber"],
                     site=site["name"],
                     status="Active" if dev["instance_state"] == "Up" else "Offline",
-                    tenant=self.tenant,
+                    tenant=self.tenant.name if self.tenant else None,
                     version=parse_version(dev["version"]),
                     uuid=None,
                     hanode=dev["ha_ip_address"],
@@ -205,7 +215,7 @@ class CitrixAdmAdapter(DiffSync):
             prefix (str): Prefix to be loaded.
         """
         if self.tenant:
-            namespace = self.tenant
+            namespace = self.tenant.name
         else:
             namespace = "Global"
         try:
@@ -214,7 +224,7 @@ class CitrixAdmAdapter(DiffSync):
             new_pf = self.prefix(
                 prefix=prefix,
                 namespace=namespace,
-                tenant=self.tenant if self.tenant else None,
+                tenant=self.tenant.name if self.tenant else None,
                 uuid=None,
             )
             self.add(new_pf)
@@ -236,7 +246,7 @@ class CitrixAdmAdapter(DiffSync):
             new_addr = self.address(
                 address=address,
                 prefix=prefix,
-                tenant=self.tenant if self.tenant else None,
+                tenant=self.tenant.name if self.tenant else None,
                 uuid=None,
                 tags=tags,
             )
