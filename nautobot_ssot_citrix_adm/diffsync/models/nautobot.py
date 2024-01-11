@@ -197,7 +197,7 @@ class NautobotSubnet(Subnet):
             prefix=ids["prefix"],
             namespace=namespace,
             status=Status.objects.get(name="Active"),
-            tenant_id=Tenant.objects.get(name=attrs["tenant"]) if attrs.get("tenant") else None,
+            tenant=Tenant.objects.get(name=attrs["tenant"]) if attrs.get("tenant") else None,
         )
         _pf.custom_field_data.update({"system_of_record": "Citrix ADM"})
         _pf.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
