@@ -14,6 +14,7 @@ def nautobot_database_ready_callback(sender, *, apps, **kwargs):  # pylint: disa
     LocationType = apps.get_model("dcim", "LocationType")
     Device = apps.get_model("dcim", "Device")
     Interface = apps.get_model("dcim", "Interface")
+    Prefix = apps.get_model("ipam", "Prefix")
     IPAddress = apps.get_model("ipam", "IPAddress")
     Platform = apps.get_model("dcim", "Platform")
 
@@ -51,6 +52,6 @@ def nautobot_database_ready_callback(sender, *, apps, **kwargs):  # pylint: disa
         "label": "Last sync from System of Record",
     }
     sync_custom_field, _ = CustomField.objects.update_or_create(key=sync_cf_dict["key"], defaults=sync_cf_dict)
-    for model in [Device, Interface, IPAddress]:
+    for model in [Device, Interface, Prefix, IPAddress]:
         sor_custom_field.content_types.add(ContentType.objects.get_for_model(model))
         sync_custom_field.content_types.add(ContentType.objects.get_for_model(model))
