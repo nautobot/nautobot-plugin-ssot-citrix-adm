@@ -4,6 +4,7 @@ import ipaddress
 from django.conf import settings
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
+from nautobot.extras.choices import SecretsGroupAccessTypeChoices, SecretsGroupSecretTypeChoices
 from nautobot.extras.models import Job
 from nautobot_ssot_citrix_adm.constants import DEVICETYPE_MAP
 from nautobot_ssot_citrix_adm.diffsync.models.citrix_adm import (
@@ -38,7 +39,7 @@ class CitrixAdmAdapter(DiffSync):
 
     top_level = ["datacenter", "device", "prefix", "address", "ip_on_intf"]
 
-    def __init__(self, *args, job: Job, sync=None, client: CitrixNitroClient, tenant: str = "", **kwargs):
+    def __init__(self, *args, job: Job, sync=None, instances, tenant: str = "", **kwargs):
         """Initialize Citrix ADM.
 
         Args:
@@ -50,7 +51,8 @@ class CitrixAdmAdapter(DiffSync):
         super().__init__(*args, **kwargs)
         self.job = job
         self.sync = sync
-        self.conn = client
+        self.instances = instances
+        self.conn = None
         self.tenant = tenant
         self.adm_site_map = {}
         self.adm_device_map = {}
@@ -257,25 +259,37 @@ class CitrixAdmAdapter(DiffSync):
 
     def load(self):
         """Load data from Citrix ADM into DiffSync models."""
-        urls = []
-        if PLUGIN_CFG.get("base_url"):
-            urls = [PLUGIN_CFG["base_url"]]
-        else:
-            self.job.logger.error("Unable to find URL for ADM instance. Please validate your settings.")
-            raise Exception("Missing URL for ADM instance.")
-        if PLUGIN_CFG.get("additional_url"):
-            urls.append(PLUGIN_CFG["additional_url"])
-        for url in urls:
-            # init
-            self.conn.url = url
-            self.conn.login()
-            self.adm_site_map = {}
-            self.adm_device_map = {}
+        for instance in self.instances:
+            self.job.logger.info(f"Loading data from {instance.name}.")
+            if instance.secrets_group is not None:
+                _sg = instance.secrets_group
+                username = _sg.get_secret_value(
+                    access_type=SecretsGroupAccessTypeChoices.TYPE_HTTP,
+                    secret_type=SecretsGroupSecretTypeChoices.TYPE_USERNAME,
+                )
+                password = _sg.get_secret_value(
+                    access_type=SecretsGroupAccessTypeChoices.TYPE_HTTP,
+                    secret_type=SecretsGroupSecretTypeChoices.TYPE_PASSWORD,
+                )
+                self.conn = CitrixNitroClient(
+                    base_url=instance.remote_url,
+                    user=username,
+                    password=password,
+                    verify=instance.verify_ssl,
+                    logger=self.job,
+                )
+                self.conn.login()
+                self.adm_site_map = {}
+                self.adm_device_map = {}
 
-            self.create_site_map()
-            self.load_devices()
-            self.create_port_map()
-            self.load_ports()
-            self.load_addresses()
+                self.create_site_map()
+                self.load_devices()
+                self.create_port_map()
+                self.load_ports()
+                self.load_addresses()
 
-            self.conn.logout()
+                self.conn.logout()
+            else:
+                self.job.logger.warning(
+                    f"Missing SecretsGroup definition for {instance.name}. This must be defined so we can authenticate instance."
+                )

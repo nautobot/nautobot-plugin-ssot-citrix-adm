@@ -2,10 +2,10 @@
 
 from django.conf import settings
 from nautobot.core.celery import register_jobs
-from nautobot.extras.jobs import BooleanVar, Job
+from nautobot.extras.jobs import BooleanVar, Job, MultiObjectVar, ObjectVar
+from nautobot.extras.models import ExternalIntegration
 from nautobot_ssot.jobs.base import DataSource, DataTarget
 from nautobot_ssot_citrix_adm.diffsync.adapters import citrix_adm, nautobot
-from nautobot_ssot_citrix_adm.utils.citrix_adm import CitrixNitroClient
 
 
 PLUGIN_CFG = settings.PLUGINS_CONFIG["nautobot_ssot_citrix_adm"]
@@ -16,6 +16,13 @@ name = "Citrix ADM SSoT"  # pylint: disable=invalid-name
 class CitrixAdmDataSource(DataSource, Job):  # pylint: disable=too-many-instance-attributes
     """Citrix ADM SSoT Data Source."""
 
+    instances = MultiObjectVar(
+        model=ExternalIntegration,
+        queryset=ExternalIntegration.objects.all(),
+        display_field="display",
+        label="Citrix ADM Instances",
+        required=True,
+    )
     debug = BooleanVar(description="Enable for more verbose debug logging", default=False)
 
     class Meta:  # pylint: disable=too-few-public-methods
@@ -38,15 +45,8 @@ class CitrixAdmDataSource(DataSource, Job):  # pylint: disable=too-many-instance
 
     def load_source_adapter(self):
         """Load data from Citrix ADM into DiffSync models."""
-        client = CitrixNitroClient(
-            base_url=PLUGIN_CFG["base_url"],
-            user=PLUGIN_CFG["username"],
-            password=PLUGIN_CFG["password"],
-            verify=PLUGIN_CFG["verify"],
-            logger=self,
-        )
         self.source_adapter = citrix_adm.CitrixAdmAdapter(
-            job=self, sync=self.sync, client=client, tenant=PLUGIN_CFG.get("tenant")
+            job=self, sync=self.sync, instances=self.instances, tenant=PLUGIN_CFG.get("tenant")
         )
         self.source_adapter.load()
 
@@ -56,9 +56,10 @@ class CitrixAdmDataSource(DataSource, Job):  # pylint: disable=too-many-instance
         self.target_adapter.load()
 
     def run(  # pylint: disable=arguments-differ, too-many-arguments
-        self, dryrun, memory_profiling, debug, *args, **kwargs
+        self, dryrun, memory_profiling, instances, debug, *args, **kwargs
     ):
         """Perform data synchronization."""
+        self.instances = instances
         self.debug = debug
         self.dryrun = dryrun
         self.memory_profiling = memory_profiling
@@ -68,6 +69,13 @@ class CitrixAdmDataSource(DataSource, Job):  # pylint: disable=too-many-instance
 class CitrixAdmDataTarget(DataTarget, Job):
     """Citrix ADM SSoT Data Target."""
 
+    instances = ObjectVar(
+        model=ExternalIntegration,
+        queryset=ExternalIntegration.objects.all(),
+        display_field="display",
+        label="Citrix ADM Instance",
+        required=True,
+    )
     debug = BooleanVar(description="Enable for more verbose debug logging", default=False)
 
     class Meta:  # pylint: disable=too-few-public-methods
@@ -95,24 +103,16 @@ class CitrixAdmDataTarget(DataTarget, Job):
 
     def load_target_adapter(self):
         """Load data from Citrix ADM into DiffSync models."""
-        client = CitrixNitroClient(
-            base_url=PLUGIN_CFG["base_url"],
-            user=PLUGIN_CFG["username"],
-            password=PLUGIN_CFG["password"],
-            verify=PLUGIN_CFG["verify"],
-            logger=self,
-        )
-        client.login()
         self.target_adapter = citrix_adm.CitrixAdmAdapter(
-            job=self, sync=self.sync, client=client, tenant=PLUGIN_CFG.get("tenant")
+            job=self, sync=self.sync, instances=self.instance, tenant=PLUGIN_CFG.get("tenant")
         )
         self.target_adapter.load()
-        client.logout()
 
     def run(  # pylint: disable=arguments-differ, too-many-arguments
-        self, dryrun, memory_profiling, debug, *args, **kwargs
+        self, dryrun, memory_profiling, instance, debug, *args, **kwargs
     ):
         """Perform data synchronization."""
+        self.instance = instance
         self.debug = debug
         self.dryrun = dryrun
         self.memory_profiling = memory_profiling
