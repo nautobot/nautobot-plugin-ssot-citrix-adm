@@ -141,13 +141,7 @@ PLUGINS_CONFIG = {
         "hide_example_jobs": True,
     },
     "nautobot_ssot_citrix_adm": {
-        "base_url": os.getenv("NAUTOBOT_SSOT_CITRIX_BASE_URL", ""),
-        "additional_url": os.getenv("NAUTOBOT_SSOT_CITRIX_ADDITIONAL_URL", ""),
-        "username": os.getenv("NAUTOBOT_SSOT_CITRIX_USERNAME", ""),
-        "password": os.getenv("NAUTOBOT_SSOT_CITRIX_PASSWORD", ""),
-        "verify": is_truthy(os.getenv("NAUTOBOT_SSOT_CITRIX_VERIFY", True)),
         "update_sites": is_truthy(os.getenv("NAUTOBOT_SSOT_CITRIX_ADM_UPDATE_SITES", True)),
-        "tenant": os.getenv("NAUTOBOT_SSOT_CITRIX_TENANT", ""),
         "hostname_mapping": [],
     },
     "nautobot_device_lifecycle_mgmt": {
