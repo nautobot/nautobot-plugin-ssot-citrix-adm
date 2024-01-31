@@ -24,7 +24,12 @@ def nautobot_database_ready_callback(sender, *, apps, **kwargs):  # pylint: disa
 
     citrix_manu, _ = Manufacturer.objects.update_or_create(name="Citrix")
     Platform.objects.update_or_create(
-        name="citrix.adc", napalm_driver="netscaler", manufacturer_id=citrix_manu.id, network_driver="netscaler"
+        name="citrix.adc", defaults={
+            "name": "citrix.adc",
+            "napalm_driver": "netscaler",
+            "manufacturer": citrix_manu,
+            "network_driver": "netscaler",
+        }
     )
     ha_node_cf_dict = {
         "key": "ha_node",
