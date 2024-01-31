@@ -72,7 +72,7 @@ class CitrixAdmDataSource(DataSource, Job):  # pylint: disable=too-many-instance
 class CitrixAdmDataTarget(DataTarget, Job):
     """Citrix ADM SSoT Data Target."""
 
-    instances = ObjectVar(
+    instance = ObjectVar(
         model=ExternalIntegration,
         queryset=ExternalIntegration.objects.all(),
         display_field="display",
