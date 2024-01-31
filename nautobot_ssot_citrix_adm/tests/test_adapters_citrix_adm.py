@@ -32,6 +32,11 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
     def setUp(self):
         """Configure shared objects for test cases."""
         super().setUp()
+        self.instance = MagicMock()
+        self.instance.name = "Test"
+        self.instance.remote_url = "https://test.example.com"
+        self.instance.verify_ssl = True
+
         self.citrix_adm_client = MagicMock()
         self.citrix_adm_client.get_sites.return_value = SITE_FIXTURE_RECV
         self.citrix_adm_client.get_devices.return_value = DEVICE_FIXTURE_RECV
@@ -44,7 +49,8 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
         self.job.job_result = JobResult.objects.create(
             name=self.job.class_path, task_name="fake task", worker="default"
         )
-        self.citrix_adm = CitrixAdmAdapter(job=self.job, sync=None, client=self.citrix_adm_client)
+        self.citrix_adm = CitrixAdmAdapter(job=self.job, sync=None, instances=[self.instance])
+        self.citrix_adm.conn = self.citrix_adm_client
 
     def test_load_site(self):
         """Test Nautobot SSoT Citrix ADM load_site() function."""
