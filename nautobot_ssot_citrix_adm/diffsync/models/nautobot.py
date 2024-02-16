@@ -1,4 +1,5 @@
 """Nautobot DiffSync models for Citrix ADM SSoT."""
+
 from datetime import datetime
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
@@ -239,9 +240,11 @@ class NautobotAddress(Address):
             address=ids["address"],
             parent=Prefix.objects.get(prefix=ids["prefix"]),
             status=Status.objects.get(name="Active"),
-            namespace=Namespace.objects.get_or_create(name=attrs["tenant"])
-            if attrs.get("tenant")
-            else Namespace.objects.get(name="Global"),
+            namespace=(
+                Namespace.objects.get_or_create(name=attrs["tenant"])[0]
+                if attrs.get("tenant")
+                else Namespace.objects.get(name="Global")
+            ),
         )
         if attrs.get("tenant"):
             new_ip.tenant = Tenant.objects.update_or_create(name=attrs["tenant"])[0]
