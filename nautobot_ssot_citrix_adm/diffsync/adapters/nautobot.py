@@ -2,6 +2,7 @@
 
 from collections import defaultdict
 from diffsync import DiffSync
+from diffsync.enum import DiffSyncModelFlags
 from diffsync.exceptions import ObjectNotFound
 from django.db.models import ProtectedError
 from typing import Optional
@@ -104,6 +105,8 @@ class NautobotAdapter(DiffSync):
                 uuid=dev.id,
                 hanode=hanode,
             )
+            if self.tenant:
+                new_dev.model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
             self.add(new_dev)
 
     def load_ports(self):
@@ -124,6 +127,8 @@ class NautobotAdapter(DiffSync):
                     description=intf.description,
                     uuid=intf.id,
                 )
+                if self.tenant:
+                    new_intf.model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
                 self.add(new_intf)
                 dev.add_child(new_intf)
             except ObjectNotFound:
@@ -144,6 +149,8 @@ class NautobotAdapter(DiffSync):
                 tenant=pf.tenant.name if pf.tenant else None,
                 uuid=pf.id,
             )
+            if self.tenant:
+                new_pf.model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
             self.add(new_pf)
 
     def load_addresses(self):
@@ -160,6 +167,8 @@ class NautobotAdapter(DiffSync):
                 uuid=addr.id,
                 tags=nautobot.get_tag_strings(addr.tags),
             )
+            if self.tenant:
+                new_ip.model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
             self.add(new_ip)
             for mapping in IPAddressToInterface.objects.filter(ip_address=addr):
                 new_mapping = self.ip_on_intf(
@@ -169,6 +178,8 @@ class NautobotAdapter(DiffSync):
                     primary=len(addr.primary_ip4_for.all()) > 0 or len(addr.primary_ip6_for.all()) > 0,
                     uuid=mapping.id,
                 )
+                if self.tenant:
+                    new_mapping.model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
                 self.add(new_mapping)
 
     def sync_complete(self, source: DiffSync, diff, *args, **kwargs):
