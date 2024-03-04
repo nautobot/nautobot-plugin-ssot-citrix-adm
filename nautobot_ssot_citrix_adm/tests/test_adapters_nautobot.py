@@ -1,4 +1,5 @@
 """Test Nautobot adapter."""
+
 from unittest.mock import MagicMock
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import ProtectedError
@@ -14,6 +15,7 @@ from nautobot.dcim.models import (
 from nautobot.extras.models import Status, JobResult, Role
 from nautobot.ipam.models import IPAddress, IPAddressToInterface, Namespace, Prefix
 from nautobot.core.testing import TransactionTestCase
+from nautobot.tenancy.models import Tenant
 from nautobot_ssot_citrix_adm.diffsync.adapters.nautobot import NautobotAdapter
 from nautobot_ssot_citrix_adm.jobs import CitrixAdmDataSource
 
@@ -45,6 +47,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
 
     def build_nautobot_objects(self):
         """Build out Nautobot objects to test loading."""
+        test_tenant = Tenant.objects.get_or_create(name="Test")[0]
         region_type = LocationType.objects.get(name="Region")
         self.ny_region = Location.objects.create(name="NY", location_type=region_type, status=self.status_active)
         self.ny_region.validated_save()
@@ -67,19 +70,28 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             serial="FQ123456",
             location=self.hq_site,
             status=self.status_active,
+            tenant=test_tenant,
         )
         core_router._custom_field_data["os_version"] = "1.2.3"  # pylint: disable=protected-access
         core_router._custom_field_data["system_of_record"] = "Citrix ADM"  # pylint: disable=protected-access
         core_router.validated_save()
         mgmt_intf = Interface.objects.create(
-            name="Management", type="virtual", device=core_router, status=self.status_active
+            name="Management",
+            type="virtual",
+            device=core_router,
+            status=self.status_active,
         )
         mgmt_intf.validated_save()
 
         global_ns = Namespace.objects.get_or_create(name="Global")[0]
-        mgmt4_pf = Prefix.objects.create(prefix="10.1.1.0/24", namespace=global_ns, status=self.status_active)
+        mgmt4_pf = Prefix.objects.create(
+            prefix="10.1.1.0/24", namespace=global_ns, status=self.status_active, tenant=test_tenant
+        )
         mgmt6_pf = Prefix.objects.create(
-            prefix="2001:db8:3333:4444:5555:6666:7777:8888/128", namespace=global_ns, status=self.status_active
+            prefix="2001:db8:3333:4444:5555:6666:7777:8888/128",
+            namespace=global_ns,
+            status=self.status_active,
+            tenant=test_tenant,
         )
         mgmt4_pf._custom_field_data["system_of_record"] = "Citrix ADM"  # pylint: disable=protected-access
         mgmt4_pf.validated_save()
@@ -91,6 +103,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             namespace=global_ns,
             parent=mgmt4_pf,
             status=self.status_active,
+            tenant=test_tenant,
         )
         mgmt_addr._custom_field_data["system_of_record"] = "Citrix ADM"  # pylint: disable=protected-access
         mgmt_addr.validated_save()
@@ -98,6 +111,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             address="2001:db8:3333:4444:5555:6666:7777:8888/128",
             parent=mgmt6_pf,
             status=self.status_active,
+            tenant=test_tenant,
         )
         mgmt_addr6._custom_field_data["system_of_record"] = "Citrix ADM"  # pylint: disable=protected-access
         mgmt_addr6.validated_save()
