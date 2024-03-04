@@ -1,4 +1,5 @@
 """Signals triggered when Nautobot starts to perform certain actions."""
+
 from nautobot.extras.choices import CustomFieldTypeChoices
 
 
@@ -24,12 +25,13 @@ def nautobot_database_ready_callback(sender, *, apps, **kwargs):  # pylint: disa
 
     citrix_manu, _ = Manufacturer.objects.update_or_create(name="Citrix")
     Platform.objects.update_or_create(
-        name="citrix.adc", defaults={
+        name="citrix.adc",
+        defaults={
             "name": "citrix.adc",
             "napalm_driver": "netscaler",
             "manufacturer": citrix_manu,
             "network_driver": "netscaler",
-        }
+        },
     )
     ha_node_cf_dict = {
         "key": "ha_node",
