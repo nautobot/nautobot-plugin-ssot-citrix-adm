@@ -4,10 +4,12 @@ from collections import defaultdict
 from diffsync import DiffSync
 from diffsync.exceptions import ObjectNotFound
 from django.db.models import ProtectedError
+from typing import Optional
 from nautobot.dcim.models import Device as OrmDevice
 from nautobot.dcim.models import Interface, Location, LocationType
 from nautobot.extras.models import Job, Relationship, RelationshipAssociation
 from nautobot.ipam.models import IPAddress, IPAddressToInterface, Prefix
+from nautobot.tenancy.models import Tenant
 from nautobot_ssot_citrix_adm.diffsync.models.nautobot import (
     NautobotAddress,
     NautobotDatacenter,
@@ -38,16 +40,18 @@ class NautobotAdapter(DiffSync):
 
     top_level = ["datacenter", "device", "prefix", "address", "ip_on_intf"]
 
-    def __init__(self, *args, job: Job, sync=None, **kwargs):
+    def __init__(self, *args, job: Job, sync=None, tenant: Optional[Tenant] = None, **kwargs):
         """Initialize Nautobot.
 
         Args:
             job (Job): Nautobot job.
             sync (object, optional): Nautobot DiffSync. Defaults to None.
+            tenant (Tenant, optional): Tenant to associate imported objects with. Used to filter loaded objects.
         """
         super().__init__(*args, **kwargs)
         self.job = job
         self.sync = sync
+        self.tenant = tenant
         self.objects_to_delete = defaultdict(list)
 
     def load_sites(self):
@@ -67,9 +71,13 @@ class NautobotAdapter(DiffSync):
 
     def load_devices(self):
         """Load Devices from Nautobot into DiffSync models."""
-        for dev in OrmDevice.objects.select_related("device_type", "location", "status").filter(
-            _custom_field_data__system_of_record="Citrix ADM"
-        ):
+        if self.tenant:
+            devices = OrmDevice.objects.select_related("device_type", "location", "status").filter(tenant=self.tenant)
+        else:
+            devices = OrmDevice.objects.select_related("device_type", "location", "status").filter(
+                _custom_field_data__system_of_record="Citrix ADM"
+            )
+        for dev in devices:
             if self.job.debug:
                 self.job.logger.info(f"Loading Device {dev.name} from Nautobot.")
             version = dev._custom_field_data["os_version"]
@@ -100,9 +108,13 @@ class NautobotAdapter(DiffSync):
 
     def load_ports(self):
         """Load Interfaces from Nautobot into DiffSync models."""
-        for intf in Interface.objects.select_related("device", "status").filter(
-            device___custom_field_data__system_of_record="Citrix ADM"
-        ):
+        if self.tenant:
+            interfaces = Interface.objects.select_related("device", "status").filter(device__tenant=self.tenant)
+        else:
+            interfaces = Interface.objects.select_related("device", "status").filter(
+                device___custom_field_data__system_of_record="Citrix ADM"
+            )
+        for intf in interfaces:
             try:
                 dev = self.get(self.device, intf.device.name)
                 new_intf = self.port(
@@ -121,7 +133,11 @@ class NautobotAdapter(DiffSync):
 
     def load_prefixes(self):
         """Load Prefixes from Nautobot into DiffSync models."""
-        for pf in Prefix.objects.filter(_custom_field_data__system_of_record="Citrix ADM"):
+        if self.tenant:
+            prefixes = Prefix.objects.filter(tenant=self.tenant)
+        else:
+            prefixes = Prefix.objects.filter(_custom_field_data__system_of_record="Citrix ADM")
+        for pf in prefixes:
             new_pf = self.prefix(
                 prefix=str(pf.prefix),
                 namespace=pf.namespace.name,
@@ -132,7 +148,11 @@ class NautobotAdapter(DiffSync):
 
     def load_addresses(self):
         """Load IP Addresses from Nautobot into DiffSync models."""
-        for addr in IPAddress.objects.filter(_custom_field_data__system_of_record="Citrix ADM"):
+        if self.tenant:
+            addresses = IPAddress.objects.filter(tenant=self.tenant)
+        else:
+            addresses = IPAddress.objects.filter(_custom_field_data__system_of_record="Citrix ADM")
+        for addr in addresses:
             new_ip = self.address(
                 address=str(addr.address),
                 prefix=str(addr.parent.prefix),

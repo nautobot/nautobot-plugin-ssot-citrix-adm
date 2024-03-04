@@ -54,7 +54,7 @@ class CitrixAdmDataSource(DataSource, Job):  # pylint: disable=too-many-instance
 
     def load_target_adapter(self):
         """Load data from Nautobot into DiffSync models."""
-        self.target_adapter = nautobot.NautobotAdapter(job=self, sync=self.sync)
+        self.target_adapter = nautobot.NautobotAdapter(job=self, sync=self.sync, tenant=self.tenant)
         self.target_adapter.load()
 
     def run(  # pylint: disable=arguments-differ, too-many-arguments
@@ -102,7 +102,7 @@ class CitrixAdmDataTarget(DataTarget, Job):
 
     def load_source_adapter(self):
         """Load data from Nautobot into DiffSync models."""
-        self.source_adapter = nautobot.NautobotAdapter(job=self, sync=self.sync)
+        self.source_adapter = nautobot.NautobotAdapter(job=self, sync=self.sync, tenant=self.tenant)
         self.source_adapter.load()
 
     def load_target_adapter(self):
