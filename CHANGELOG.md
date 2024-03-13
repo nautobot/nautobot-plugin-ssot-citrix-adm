@@ -9,7 +9,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## v2.0.0 (2024-03-13)
 
+### Feature
 
+* Updates for Nautobot 2.0 made by @jdrew82 and @jmpettit
 
 ## v1.1.1 (2023-12-01)
 
