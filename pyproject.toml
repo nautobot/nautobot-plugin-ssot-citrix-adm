@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nautobot-ssot-citrix-adm"
-version = "2.0.0"
+version = "1.1.1"
 description = "Nautobot SSoT Citrix ADM"
 authors = ["Justin Drew <info@networktocode.com>"]
 license = "Apache-2.0"
