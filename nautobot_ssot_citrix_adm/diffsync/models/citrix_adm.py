@@ -1,6 +1,13 @@
 """Nautobot SSoT Citrix ADM DiffSync models for Nautobot SSoT Citrix ADM SSoT."""
 
-from nautobot_ssot_citrix_adm.diffsync.models.base import Datacenter, Device, Port, Address
+from nautobot_ssot_citrix_adm.diffsync.models.base import (
+    Datacenter,
+    Device,
+    Port,
+    Subnet,
+    Address,
+    IPAddressOnInterface,
+)
 
 
 class CitrixAdmDatacenter(Datacenter):
@@ -54,6 +61,23 @@ class CitrixAdmPort(Port):
         return self
 
 
+class CitrixAdmSubnet(Subnet):
+    """Citrix ADM implementation of Subnet DiffSync model."""
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create Prefix in Citrix ADM from Subnet object."""
+        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+
+    def update(self, attrs):
+        """Update Prefix in Citrix ADM from Subnet object."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete Prefix in Citrix ADM from Subnet object."""
+        return self
+
+
 class CitrixAdmAddress(Address):
     """Citrix ADM implementation of Address DiffSync model."""
 
@@ -68,4 +92,21 @@ class CitrixAdmAddress(Address):
 
     def delete(self):
         """Delete IP Address in Citrix ADM from Address object."""
+        return self
+
+
+class CitrixAdmIPAddressOnInterface(IPAddressOnInterface):
+    """Citrix ADM implementation of IPAddressOnInterface DiffSync model."""
+
+    @classmethod
+    def create(cls, diffsync, ids, attrs):
+        """Create IPAddressToInterface in Citrix ADM from CitrixAdmIPAddressOnInterface object."""
+        return super().create(diffsync=diffsync, ids=ids, attrs=attrs)
+
+    def update(self, attrs):
+        """Update IPAddressToInterface in Citrix ADM from CitrixAdmIPAddressOnInterface object."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete IPAddressToInterface in Citrix ADM from CitrixAdmIPAddressOnInterface object."""
         return self

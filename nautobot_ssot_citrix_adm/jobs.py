@@ -1,11 +1,12 @@
 """Jobs for Citrix ADM SSoT integration."""
 
 from django.conf import settings
-from diffsync.enum import DiffSyncFlags
-from nautobot.extras.jobs import BooleanVar, Job
+from nautobot.core.celery import register_jobs
+from nautobot.extras.jobs import BooleanVar, Job, MultiObjectVar, ObjectVar
+from nautobot.extras.models import ExternalIntegration
+from nautobot.tenancy.models import Tenant
 from nautobot_ssot.jobs.base import DataSource, DataTarget
 from nautobot_ssot_citrix_adm.diffsync.adapters import citrix_adm, nautobot
-from nautobot_ssot_citrix_adm.utils.citrix_adm import CitrixNitroClient
 
 
 PLUGIN_CFG = settings.PLUGINS_CONFIG["nautobot_ssot_citrix_adm"]
@@ -13,15 +14,18 @@ PLUGIN_CFG = settings.PLUGINS_CONFIG["nautobot_ssot_citrix_adm"]
 name = "Citrix ADM SSoT"  # pylint: disable=invalid-name
 
 
-class CitrixAdmDataSource(DataSource, Job):
+class CitrixAdmDataSource(DataSource, Job):  # pylint: disable=too-many-instance-attributes
     """Citrix ADM SSoT Data Source."""
 
+    instances = MultiObjectVar(
+        model=ExternalIntegration,
+        queryset=ExternalIntegration.objects.all(),
+        display_field="display",
+        label="Citrix ADM Instances",
+        required=True,
+    )
+    tenant = ObjectVar(model=Tenant, queryset=Tenant.objects.all(), display_field="display_name", required=False)
     debug = BooleanVar(description="Enable for more verbose debug logging", default=False)
-
-    def __init__(self):
-        """Initialize Citrix ADM Data Source."""
-        super().__init__()
-        self.diffsync_flags = self.diffsync_flags | DiffSyncFlags.CONTINUE_ON_FAILURE
 
     class Meta:  # pylint: disable=too-few-public-methods
         """Meta data for Citrix ADM."""
@@ -43,33 +47,40 @@ class CitrixAdmDataSource(DataSource, Job):
 
     def load_source_adapter(self):
         """Load data from Citrix ADM into DiffSync models."""
-        client = CitrixNitroClient(
-            base_url=PLUGIN_CFG["base_url"],
-            user=PLUGIN_CFG["username"],
-            password=PLUGIN_CFG["password"],
-            verify=PLUGIN_CFG["verify"],
-            logger=self,
-        )
         self.source_adapter = citrix_adm.CitrixAdmAdapter(
-            job=self, sync=self.sync, client=client, tenant=PLUGIN_CFG.get("tenant")
+            job=self, sync=self.sync, instances=self.instances, tenant=self.tenant
         )
         self.source_adapter.load()
 
     def load_target_adapter(self):
         """Load data from Nautobot into DiffSync models."""
-        self.target_adapter = nautobot.NautobotAdapter(job=self, sync=self.sync)
+        self.target_adapter = nautobot.NautobotAdapter(job=self, sync=self.sync, tenant=self.tenant)
         self.target_adapter.load()
+
+    def run(  # pylint: disable=arguments-differ, too-many-arguments
+        self, dryrun, memory_profiling, instances, tenant, debug, *args, **kwargs
+    ):
+        """Perform data synchronization."""
+        self.instances = instances
+        self.tenant = tenant
+        self.debug = debug
+        self.dryrun = dryrun
+        self.memory_profiling = memory_profiling
+        super().run(dryrun=self.dryrun, memory_profiling=self.memory_profiling, *args, **kwargs)
 
 
 class CitrixAdmDataTarget(DataTarget, Job):
     """Citrix ADM SSoT Data Target."""
 
+    instance = ObjectVar(
+        model=ExternalIntegration,
+        queryset=ExternalIntegration.objects.all(),
+        display_field="display",
+        label="Citrix ADM Instance",
+        required=True,
+    )
+    tenant = ObjectVar(model=Tenant, queryset=Tenant.objects.all(), display_field="display_name", required=False)
     debug = BooleanVar(description="Enable for more verbose debug logging", default=False)
-
-    def __init__(self):
-        """Initialize Citrix ADM Data Target."""
-        super().__init__()
-        self.diffsync_flags = self.diffsync_flags | DiffSyncFlags.CONTINUE_ON_FAILURE
 
     class Meta:  # pylint: disable=too-few-public-methods
         """Meta data for Citrix ADM."""
@@ -91,24 +102,27 @@ class CitrixAdmDataTarget(DataTarget, Job):
 
     def load_source_adapter(self):
         """Load data from Nautobot into DiffSync models."""
-        self.source_adapter = nautobot.NautobotAdapter(job=self, sync=self.sync)
+        self.source_adapter = nautobot.NautobotAdapter(job=self, sync=self.sync, tenant=self.tenant)
         self.source_adapter.load()
 
     def load_target_adapter(self):
         """Load data from Citrix ADM into DiffSync models."""
-        client = CitrixNitroClient(
-            base_url=PLUGIN_CFG["base_url"],
-            user=PLUGIN_CFG["username"],
-            password=PLUGIN_CFG["password"],
-            verify=PLUGIN_CFG["verify"],
-            logger=self,
-        )
-        client.login()
         self.target_adapter = citrix_adm.CitrixAdmAdapter(
-            job=self, sync=self.sync, client=client, tenant=PLUGIN_CFG.get("tenant")
+            job=self, sync=self.sync, instances=self.instance, tenant=self.tenant
         )
         self.target_adapter.load()
-        client.logout()
+
+    def run(  # pylint: disable=arguments-differ, too-many-arguments
+        self, dryrun, memory_profiling, instance, tenant, debug, *args, **kwargs
+    ):
+        """Perform data synchronization."""
+        self.instance = instance
+        self.tenant = tenant
+        self.debug = debug
+        self.dryrun = dryrun
+        self.memory_profiling = memory_profiling
+        super().run(dryrun=self.dryrun, memory_profiling=self.memory_profiling, *args, **kwargs)
 
 
 jobs = [CitrixAdmDataSource]
+register_jobs(*jobs)

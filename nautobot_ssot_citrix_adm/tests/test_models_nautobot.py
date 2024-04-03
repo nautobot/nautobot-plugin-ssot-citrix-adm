@@ -2,9 +2,9 @@
 from unittest.mock import MagicMock
 from diffsync import DiffSync
 from django.test import override_settings
-from nautobot.dcim.models import Region, Site
+from nautobot.dcim.models import Location, LocationType
 from nautobot.extras.models import Status
-from nautobot.utilities.testing import TransactionTestCase
+from nautobot.core.testing import TransactionTestCase
 
 from nautobot_ssot_citrix_adm.diffsync.models.nautobot import NautobotDatacenter
 
@@ -17,43 +17,51 @@ class TestNautobotDatacenter(TransactionTestCase):
         super().setUp()
         self.diffsync = DiffSync()
         self.diffsync.job = MagicMock()
-        self.diffsync.job.log_warning = MagicMock()
-        self.test_dc = NautobotDatacenter(name="Test", region="", latitude="", longitude="", uuid=None)
+        self.diffsync.job.logger.warning = MagicMock()
+        self.status_active = Status.objects.get(name="Active")
+        self.test_dc = NautobotDatacenter(name="Test", region="", latitude=None, longitude=None, uuid=None)
+        self.global_region = Location.objects.create(
+            name="Global", location_type=LocationType.objects.get(name="Region"), status=self.status_active
+        )
+        self.site_obj = Location.objects.create(
+            name="HQ",
+            location_type=LocationType.objects.get(name="Site"),
+            parent=self.global_region,
+            status=self.status_active,
+        )
 
     def test_create(self):
         """Validate the NautobotDatacenter create() method creates a Site."""
-        ids = {"name": "HQ", "region": "NY"}
-        attrs = {"latitude": "12.345", "longitude": "-67.89"}
+        self.site_obj.delete()
+        ids = {"name": "HQ", "region": "Global"}
+        attrs = {"latitude": 12.345, "longitude": -67.89}
         result = NautobotDatacenter.create(self.diffsync, ids, attrs)
         self.assertIsInstance(result, NautobotDatacenter)
-        site_obj = Site.objects.get(name=ids["name"])
-        ny_region = Region.objects.get(name=ids["region"])
-        self.assertEqual(site_obj.region, ny_region)
-        self.assertEqual(str(site_obj.latitude).rstrip("0"), attrs["latitude"])
-        self.assertEqual(str(site_obj.longitude).rstrip("0"), attrs["longitude"])
+
+        site_obj = Location.objects.get(name="HQ")
+        self.assertEqual(site_obj.parent, self.global_region)
+        self.assertEqual(float(site_obj.latitude), attrs["latitude"])
+        self.assertEqual(float(site_obj.longitude), attrs["longitude"])
 
     def test_create_with_duplicate_site(self):
         """Validate the NautobotDatacenter create() method handling of duplicate Site."""
-        _, _ = Site.objects.get_or_create(name="HQ")
         ids = {"name": "HQ", "region": ""}
         attrs = {}
         NautobotDatacenter.create(self.diffsync, ids, attrs)
-        self.diffsync.job.log_warning.assert_called_with(message="Site HQ already exists so skipping creation.")
+        self.diffsync.job.logger.warning.assert_called_with("Site HQ already exists so skipping creation.")
 
     @override_settings(PLUGINS_CONFIG={"nautobot_ssot_citrix_adm": {"update_sites": True}})
     def test_update(self):
         """Validate the NautobotDatacenter update() method updates a Site."""
-        site = Site.objects.create(name="Test", slug="test", status=Status.objects.get(name="Active"))
-        site.validated_save()
-        self.test_dc.uuid = site.id
+        self.test_dc.uuid = self.site_obj.id
         update_attrs = {
-            "latitude": "12.345",
-            "longitude": "-67.89",
+            "latitude": 12.345,
+            "longitude": -67.89,
         }
         actual = NautobotDatacenter.update(self=self.test_dc, attrs=update_attrs)
-        site.refresh_from_db()
-        self.assertEqual(str(site.latitude).rstrip("0"), update_attrs["latitude"])
-        self.assertEqual(str(site.longitude).rstrip("0"), update_attrs["longitude"])
+        self.site_obj.refresh_from_db()
+        self.assertEqual(float(self.site_obj.latitude), update_attrs["latitude"])
+        self.assertEqual(float(self.site_obj.longitude), update_attrs["longitude"])
         self.assertEqual(actual, self.test_dc)
 
     @override_settings(PLUGINS_CONFIG={"nautobot_ssot_citrix_adm": {"update_sites": False}})
@@ -61,8 +69,8 @@ class TestNautobotDatacenter(TransactionTestCase):
         """Validate the NautobotDatacenter update() method doesn't update a Site if setting is False."""
         self.test_dc.diffsync = MagicMock()
         self.test_dc.diffsync.job = MagicMock()
-        self.test_dc.diffsync.job.log_warning = MagicMock()
+        self.test_dc.diffsync.job.logger.warning = MagicMock()
         NautobotDatacenter.update(self=self.test_dc, attrs={})
-        self.test_dc.diffsync.job.log_warning.assert_called_once_with(
-            message="Update sites setting is disabled so skipping updating Test."
+        self.test_dc.diffsync.job.logger.warning.assert_called_once_with(
+            "Update sites setting is disabled so skipping updating Test."
         )
