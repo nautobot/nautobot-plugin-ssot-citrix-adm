@@ -30,7 +30,7 @@ def nautobot_database_ready_callback(sender, *, apps, **kwargs):  # pylint: disa
             "name": "citrix.adc",
             "napalm_driver": "netscaler",
             "manufacturer": citrix_manu,
-            "network_driver": "netscaler",
+            "network_driver": "citrix_netscaler",
         },
     )
     ha_node_cf_dict = {
