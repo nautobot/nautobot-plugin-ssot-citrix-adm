@@ -14,7 +14,7 @@ packages = [{ include = "nautobot_ssot_citrix_adm" }]
 [tool.poetry.dependencies]
 python = "^3.8,<3.12"
 # Used for local development
-nautobot = "^2.1.0"
+nautobot = "^2.1.9"
 nautobot-ssot = "^2.0.0"
 nautobot-device-lifecycle-mgmt = {version = "^2.0.0", optional = true}
 
