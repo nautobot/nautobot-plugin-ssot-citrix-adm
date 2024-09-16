@@ -7,6 +7,50 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 <!--next-version-placeholder-->
 
+## v2.1.0 (2024-09-16)
+
+### Feature
+
+* ♻️ Update Nautobot adapter to allow filtering of loaded objects using Tenant. ([`aef624c`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/aef624c2c1bee0a695e8ed40104f83c5372f534d))
+* Move Tenant specification to Job form. ([`6f5f35c`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/6f5f35c9fdbc062d6d5de2f4261ae8a579ccbf5c))
+* Add support for ExternalIntegration for instance information. ([`b21deef`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/b21deefa35ea6d4c0490d611ba4d52cf30fe8ac3))
+* ✨ Add Subnet DiffSyncModel to track prefixes to associate to IPAddresses. ([`d2ce704`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/d2ce704276c5409dfea12d9b2b09d6fe9f77c9c8))
+
+### Fix
+
+* 🐛 Update Platform network_driver to citrix_netscaler ([`9b35118`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/9b351184f653670709516fabccedf3a93ceff4a1))
+* 🐛 Apply DiffSync flags to models loaded when Tenant specifed. ([`9a9a1c4`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/9a9a1c405b60fb4e75fb2944a310a3955a309d0a))
+* 🐛 Correct get_or_create for Namespace to use first element. ([`10a0126`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/10a01261c4fa88092e80015a4af060de25799ec8))
+* 🐛 Add update of SoR CustomFields in Prefix update ([`40229dc`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/40229dc907e13c8a6e485485e7ad040dbe0c9c7c))
+* Correct Platform update_or_create to use defaults ([`0f21cb2`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/0f21cb2ca097fc8a2f4b55afabeef89bb7a7b0a3))
+* Correct ObjectVar name ([`d3c3671`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/d3c3671106db91d93018a2ffe65dc0e04a7d1c39))
+* Ensure that SoR CustomFields work on Prefix. ([`df71ea0`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/df71ea0c105743c1f69cfea6fb1331d5158869a1))
+* Correct function to use tenant instead of tenant_id. ([`0fd49dd`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/0fd49dd0f6339e091c9e47139a77cb0c4fb6202a))
+* 🐛 Add check for instance URL being defined. Raise Exception if missing. ([`5a3317b`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/5a3317b981cd10e1b63cd05b98a371c94d2e8fee))
+* 🐛 Make latitude/longitude on DC a float and fix adapters to have diff line up. ([`7bdb671`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/7bdb6719a18b9af6b62416a7dc6bfaf7580ad2ed))
+* 🐛 Correct validation of site region to be global if undefined. ([`c099a27`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/c099a27951b6566ed7e1738873143f3049b79f44))
+* 🐛 Correct Region for a Site to be Global if undefined. ([`aa270c7`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/aa270c736e3063e673204b85cb33c8233492dbd8))
+* 🐛 Ensure Tag ContentType is set. ([`cd0acdb`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/cd0acdb2f579d17165364500dd0cd03d06cfcf54))
+* 🐛 Ensure Tenant shows as None if not set for IPAddress. ([`296e7b3`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/296e7b3c6413cd28364f0603ddebfd829c108022))
+* 🐛 Correct tenant on Device to be None if not defined. ([`1d0ee5c`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/1d0ee5c7d45693073d23d1c152c12ccad4b6beec))
+* 🐛 Fix the way you determine if an IPAddress is primary or not. ([`94776a4`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/94776a4a230da1d0d750130a6d55fd16db971f45))
+* 🐛 Correct IPAddressToInterface create() to pass IPAddress object. ([`a02c25d`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/a02c25db49a9480aa4f05e62742237a34309ca0d))
+* 🐛 Correct check for existing Prefix to use correct Namespace. ([`7b4682b`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/7b4682b3928d3e403af2ca5acdf2c248f002c45a))
+* 🐛 Correct the add_software_lcm function to use correct var for platform. ([`76c4a71`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/76c4a718187de392cbc68f348b27a7949def2d8a))
+* 🐛 Correct platform name to be citrix.adc ([`7308b6d`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/7308b6d1c60248312fcacc5a3c8c04a4f5c9c3ae))
+* 🐛 Fix method to use platform_name and not overwrite platform var. ([`b2d4bd2`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/b2d4bd211af1fab9410e3f3a9a87c1202ba8882c))
+* 🐛 Correct debug toggle to be on job instead of kwargs ([`7ef82ab`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/7ef82ab6ec5761b64343d0aa658e8bb405df4ef1))
+* 🐛 Update logging statements to use logger per 2.0 pattern. Also updated test. ([`30b036d`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/30b036d47cab6c5fa48810c0950d1b1e8d6c3073))
+* Update CustomFields to use key instead of name/slug ([`748bb5d`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/748bb5ddabaaeb3458716eca5e3464ccdb6c7af7))
+
+### Documentation
+
+* Update CHANGELOG ([`3a34714`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/3a34714b90547aceea8ed6397964761239c30305))
+
+### Performance
+
+* ⚡️ Ensure Region/Site LocationTypes are in place for use later via signals ([`b535292`](https://github.com/networktocode-llc/nautobot-plugin-ssot-citrix-adm/commit/b5352929b282b9be8ab9b7a67bbf321aac61a42f))
+
 ## v2.0.0 (2024-03-13)
 
 ### Feature
