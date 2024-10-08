@@ -18,14 +18,6 @@ from nautobot_ssot_citrix_adm.diffsync.models.base import (
     Port,
     Subnet,
 )
-from nautobot_ssot_citrix_adm.utils.nautobot import add_software_lcm, assign_version_to_device
-
-try:
-    import nautobot_device_lifecycle_mgmt  # noqa: F401
-
-    LIFECYCLE_MGMT = True
-except ImportError:
-    LIFECYCLE_MGMT = False
 
 
 class NautobotDatacenter(Datacenter):
@@ -96,9 +88,6 @@ class NautobotDevice(Device):
             new_device.tenant = Tenant.objects.update_or_create(name=attrs["tenant"])[0]
         if attrs.get("version"):
             new_device.custom_field_data.update({"os_version": attrs["version"]})
-            if LIFECYCLE_MGMT:
-                lcm_obj = add_software_lcm(adapter=adapter, platform_name="citrix.adc", version=attrs["version"])
-                assign_version_to_device(adapter=adapter, device=new_device, software_lcm=lcm_obj)
         if attrs.get("hanode"):
             new_device.custom_field_data["ha_node"] = attrs["hanode"]
         new_device.custom_field_data["system_of_record"] = "Citrix ADM"
@@ -128,9 +117,6 @@ class NautobotDevice(Device):
                 device.tenant = None
         if "version" in attrs:
             device.custom_field_data.update({"os_version": attrs["version"]})
-            if LIFECYCLE_MGMT:
-                lcm_obj = add_software_lcm(adapter=self.adapter, platform_name="citrix.adc", version=attrs["version"])
-                assign_version_to_device(adapter=self.adapter, device=device, software_lcm=lcm_obj)
         if "hanode" in attrs:
             device.custom_field_data["ha_node"] = attrs["hanode"]
         device.custom_field_data["system_of_record"] = "Citrix ADM"

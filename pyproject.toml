@@ -32,7 +32,6 @@ python = "^3.8,<3.13"
 # Used for local development
 nautobot = "^2.2.0"
 nautobot-ssot = "^3.0.0"
-nautobot-device-lifecycle-mgmt = {version = "^2.0.0", optional = true}
 
 [tool.poetry.group.dev.dependencies]
 coverage = "*"
@@ -62,9 +61,8 @@ jsonschema = "*"
 python-semantic-release = "*"
 
 [tool.poetry.extras]
-all = ["nautobot", "nautobot-device-lifecycle-mgmt"]
+all = ["nautobot"]
 nautobot = ["nautobot"]
-nautobot-device-lifecycle-mgmt = ["nautobot-device-lifecycle-mgmt"]
 
 [tool.pylint.master]
 # Include the pylint_django plugin to avoid spurious warnings about Django patterns

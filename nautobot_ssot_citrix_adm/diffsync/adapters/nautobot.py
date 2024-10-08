@@ -9,7 +9,7 @@ from diffsync.exceptions import ObjectNotFound
 from django.db.models import ProtectedError
 from nautobot.dcim.models import Device as OrmDevice
 from nautobot.dcim.models import Interface, Location, LocationType
-from nautobot.extras.models import Job, Relationship, RelationshipAssociation
+from nautobot.extras.models import Job
 from nautobot.ipam.models import IPAddress, IPAddressToInterface, Prefix
 from nautobot.tenancy.models import Tenant
 
@@ -22,13 +22,6 @@ from nautobot_ssot_citrix_adm.diffsync.models.nautobot import (
     NautobotSubnet,
 )
 from nautobot_ssot_citrix_adm.utils import nautobot
-
-try:
-    import nautobot_device_lifecycle_mgmt  # noqa: F401
-
-    LIFECYCLE_MGMT = True
-except ImportError:
-    LIFECYCLE_MGMT = False
 
 
 class NautobotAdapter(Adapter):
@@ -83,18 +76,7 @@ class NautobotAdapter(Adapter):
         for dev in devices:
             if self.job.debug:
                 self.job.logger.info(f"Loading Device {dev.name} from Nautobot.")
-            version = dev._custom_field_data["os_version"]
             hanode = dev._custom_field_data.get("ha_node")
-            if LIFECYCLE_MGMT:
-                try:
-                    software_relation = Relationship.objects.get(label="Software on Device")
-                    relationship = RelationshipAssociation.objects.get(
-                        relationship=software_relation, destination_id=dev.id
-                    )
-                    version = relationship.source.version
-                except RelationshipAssociation.DoesNotExist:
-                    self.job.logger.info(f"Unable to find DLC Software version for {dev.name}.")
-                    version = ""
             new_dev = self.device(
                 name=dev.name,
                 model=dev.device_type.model,
@@ -103,7 +85,7 @@ class NautobotAdapter(Adapter):
                 site=dev.location.name,
                 status=dev.status.name,
                 tenant=dev.tenant.name if dev.tenant else "",
-                version=version,
+                version=dev.software_version.version,
                 uuid=dev.id,
                 hanode=hanode,
             )
