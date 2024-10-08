@@ -1,23 +1,25 @@
 """Nautobot Adapter for Citrix ADM SSoT plugin."""
 
 from collections import defaultdict
-from diffsync import DiffSync
+from typing import Optional
+
+from diffsync import Adapter
 from diffsync.enum import DiffSyncModelFlags
 from diffsync.exceptions import ObjectNotFound
 from django.db.models import ProtectedError
-from typing import Optional
 from nautobot.dcim.models import Device as OrmDevice
 from nautobot.dcim.models import Interface, Location, LocationType
 from nautobot.extras.models import Job, Relationship, RelationshipAssociation
 from nautobot.ipam.models import IPAddress, IPAddressToInterface, Prefix
 from nautobot.tenancy.models import Tenant
+
 from nautobot_ssot_citrix_adm.diffsync.models.nautobot import (
     NautobotAddress,
     NautobotDatacenter,
     NautobotDevice,
+    NautobotIPAddressOnInterface,
     NautobotPort,
     NautobotSubnet,
-    NautobotIPAddressOnInterface,
 )
 from nautobot_ssot_citrix_adm.utils import nautobot
 
@@ -29,7 +31,7 @@ except ImportError:
     LIFECYCLE_MGMT = False
 
 
-class NautobotAdapter(DiffSync):
+class NautobotAdapter(Adapter):
     """DiffSync adapter for Nautobot."""
 
     datacenter = NautobotDatacenter
@@ -182,7 +184,7 @@ class NautobotAdapter(DiffSync):
                     new_mapping.model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
                 self.add(new_mapping)
 
-    def sync_complete(self, source: DiffSync, diff, *args, **kwargs):
+    def sync_complete(self, source: Adapter, diff, *args, **kwargs):
         """Label and clean up function for DiffSync sync.
 
         Once the sync is complete, this function labels all imported objects and then

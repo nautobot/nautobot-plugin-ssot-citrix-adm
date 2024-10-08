@@ -1,6 +1,8 @@
 """DiffSyncModel subclasses for Nautobot-to-Citrix ADM data sync."""
+
 from typing import List, Optional
 from uuid import UUID
+
 from diffsync import DiffSyncModel
 from diffsync.enum import DiffSyncModelFlags
 
@@ -8,7 +10,7 @@ from diffsync.enum import DiffSyncModelFlags
 class Datacenter(DiffSyncModel):
     """Diffsync model for Citrix ADM datacenters."""
 
-    model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
+    model_flags: DiffSyncModelFlags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
 
     _modelname = "datacenter"
     _identifiers = (
@@ -18,10 +20,10 @@ class Datacenter(DiffSyncModel):
     _attributes = ("latitude", "longitude")
 
     name: str
-    region: Optional[str]
-    latitude: Optional[float]
-    longitude: Optional[float]
-    uuid: Optional[UUID]
+    region: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    uuid: Optional[UUID] = None
 
 
 class Device(DiffSyncModel):
@@ -42,17 +44,17 @@ class Device(DiffSyncModel):
     _children = {"port": "ports"}
 
     name: str
-    model: Optional[str]
+    model: Optional[str] = None
     role: str
-    serial: Optional[str]
-    site: Optional[str]
-    status: Optional[str]
-    tenant: Optional[str]
-    version: Optional[str]
+    serial: Optional[str] = None
+    site: Optional[str] = None
+    status: Optional[str] = None
+    tenant: Optional[str] = None
+    version: Optional[str] = None
     ports: Optional[List["Port"]] = []
-    hanode: Optional[str]
+    hanode: Optional[str] = None
 
-    uuid: Optional[UUID]
+    uuid: Optional[UUID] = None
 
 
 class Port(DiffSyncModel):
@@ -66,9 +68,9 @@ class Port(DiffSyncModel):
     name: str
     device: str
     status: str
-    description: Optional[str]
+    description: Optional[str] = None
 
-    uuid: Optional[UUID]
+    uuid: Optional[UUID] = None
 
 
 class Subnet(DiffSyncModel):
@@ -81,9 +83,9 @@ class Subnet(DiffSyncModel):
 
     prefix: str
     namespace: str
-    tenant: Optional[str]
+    tenant: Optional[str] = None
 
-    uuid: Optional[UUID]
+    uuid: Optional[UUID] = None
 
 
 class Address(DiffSyncModel):
@@ -96,10 +98,10 @@ class Address(DiffSyncModel):
 
     address: str
     prefix: str
-    tenant: Optional[str]
-    tags: Optional[list]
+    tenant: Optional[str] = None
+    tags: Optional[list] = None
 
-    uuid: Optional[UUID]
+    uuid: Optional[UUID] = None
 
 
 class IPAddressOnInterface(DiffSyncModel):
@@ -115,4 +117,4 @@ class IPAddressOnInterface(DiffSyncModel):
     port: str
     primary: bool
 
-    uuid: Optional[UUID]
+    uuid: Optional[UUID] = None

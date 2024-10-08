@@ -1,35 +1,37 @@
 """Nautobot SSoT Citrix ADM Adapter for Citrix ADM SSoT plugin."""
+
+import ipaddress
 from decimal import Decimal
 from typing import List, Optional
-import ipaddress
-from django.conf import settings
-from diffsync import DiffSync
+
 from diffsync.exceptions import ObjectNotFound
+from django.conf import settings
 from nautobot.extras.choices import SecretsGroupAccessTypeChoices, SecretsGroupSecretTypeChoices
-from nautobot.extras.models import Job, ExternalIntegration
+from nautobot.extras.models import ExternalIntegration, Job
 from nautobot.tenancy.models import Tenant
+
 from nautobot_ssot_citrix_adm.constants import DEVICETYPE_MAP
 from nautobot_ssot_citrix_adm.diffsync.models.citrix_adm import (
+    CitrixAdmAddress,
     CitrixAdmDatacenter,
     CitrixAdmDevice,
+    CitrixAdmIPAddressOnInterface,
     CitrixAdmPort,
     CitrixAdmSubnet,
-    CitrixAdmAddress,
-    CitrixAdmIPAddressOnInterface,
 )
 from nautobot_ssot_citrix_adm.utils.citrix_adm import (
-    parse_hostname_for_role,
-    parse_version,
     CitrixNitroClient,
-    parse_vlan_bindings,
-    parse_nsips,
+    parse_hostname_for_role,
     parse_nsip6s,
+    parse_nsips,
+    parse_version,
+    parse_vlan_bindings,
 )
 
 PLUGIN_CFG = settings.PLUGINS_CONFIG["nautobot_ssot_citrix_adm"]
 
 
-class CitrixAdmAdapter(DiffSync):
+class CitrixAdmAdapter(Adapter):
     """DiffSync adapter for Citrix ADM."""
 
     datacenter = CitrixAdmDatacenter
@@ -43,12 +45,10 @@ class CitrixAdmAdapter(DiffSync):
 
     def __init__(
         self,
-        *args,
         job: Job,
         sync=None,
         instances: List[ExternalIntegration],
         tenant: Optional[Tenant] = None,
-        **kwargs,
     ):
         """Initialize Citrix ADM.
 
@@ -58,7 +58,7 @@ class CitrixAdmAdapter(DiffSync):
             instances (List[ExternalIntegration]): ExternalIntegrations defining Citrix ADM instances.
             tenant (Tenant, optional): Name of Tenant to associate Devices and IP Addresses with.
         """
-        super().__init__(*args, **kwargs)
+        super().__init__()
         self.job = job
         self.sync = sync
         self.instances = instances
