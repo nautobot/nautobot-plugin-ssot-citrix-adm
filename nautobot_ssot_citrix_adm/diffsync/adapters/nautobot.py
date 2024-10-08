@@ -166,7 +166,7 @@ class NautobotAdapter(Adapter):
                     new_mapping.model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
                 self.add(new_mapping)
 
-    def sync_complete(self, source: Adapter, diff):
+    def sync_complete(self, source: Adapter, diff):  # pylint: disable=arguments-differ
         """Label and clean up function for DiffSync sync.
 
         Once the sync is complete, this function labels all imported objects and then
