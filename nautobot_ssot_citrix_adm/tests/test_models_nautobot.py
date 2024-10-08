@@ -1,10 +1,12 @@
 """Test the Nautobot CRUD functions for all DiffSync models."""
+
 from unittest.mock import MagicMock
+
 from diffsync import DiffSync
 from django.test import override_settings
+from nautobot.core.testing import TransactionTestCase
 from nautobot.dcim.models import Location, LocationType
 from nautobot.extras.models import Status
-from nautobot.core.testing import TransactionTestCase
 
 from nautobot_ssot_citrix_adm.diffsync.models.nautobot import NautobotDatacenter
 

@@ -2,28 +2,30 @@
 
 import logging
 from unittest.mock import MagicMock, patch
+
 import requests
-from requests.exceptions import HTTPError
 from nautobot.core.testing import TestCase
+from requests.exceptions import HTTPError
+
 from nautobot_ssot_citrix_adm.tests.fixtures import (
-    SITE_FIXTURE_SENT,
-    SITE_FIXTURE_RECV,
-    DEVICE_FIXTURE_SENT,
     DEVICE_FIXTURE_RECV,
-    NSIP6_FIXTURE_SENT,
+    DEVICE_FIXTURE_SENT,
     NSIP6_FIXTURE_RECV,
-    VLAN_FIXTURE_SENT,
-    VLAN_FIXTURE_RECV,
-    NSIP_FIXTURE_SENT,
+    NSIP6_FIXTURE_SENT,
     NSIP_FIXTURE_RECV,
+    NSIP_FIXTURE_SENT,
+    SITE_FIXTURE_RECV,
+    SITE_FIXTURE_SENT,
+    VLAN_FIXTURE_RECV,
+    VLAN_FIXTURE_SENT,
 )
 from nautobot_ssot_citrix_adm.utils.citrix_adm import (
-    parse_hostname_for_role,
-    parse_version,
     CitrixNitroClient,
-    parse_vlan_bindings,
-    parse_nsips,
+    parse_hostname_for_role,
     parse_nsip6s,
+    parse_nsips,
+    parse_version,
+    parse_vlan_bindings,
 )
 
 LOGGER = logging.getLogger(__name__)

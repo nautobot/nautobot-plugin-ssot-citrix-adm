@@ -4,6 +4,7 @@ import ipaddress
 from decimal import Decimal
 from typing import List, Optional
 
+from diffsync import Adapter
 from diffsync.exceptions import ObjectNotFound
 from django.conf import settings
 from nautobot.extras.choices import SecretsGroupAccessTypeChoices, SecretsGroupSecretTypeChoices
@@ -46,16 +47,16 @@ class CitrixAdmAdapter(Adapter):
     def __init__(
         self,
         job: Job,
-        sync=None,
         instances: List[ExternalIntegration],
+        sync=None,
         tenant: Optional[Tenant] = None,
     ):
         """Initialize Citrix ADM.
 
         Args:
             job (Job): Citrix ADM job.
-            sync (object, optional): Citrix ADM DiffSync. Defaults to None.
             instances (List[ExternalIntegration]): ExternalIntegrations defining Citrix ADM instances.
+            sync (object, optional): Citrix ADM DiffSync. Defaults to None.
             tenant (Tenant, optional): Name of Tenant to associate Devices and IP Addresses with.
         """
         super().__init__()

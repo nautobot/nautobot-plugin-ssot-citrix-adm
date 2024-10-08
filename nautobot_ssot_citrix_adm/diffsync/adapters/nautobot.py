@@ -43,7 +43,7 @@ class NautobotAdapter(Adapter):
 
     top_level = ["datacenter", "device", "prefix", "address", "ip_on_intf"]
 
-    def __init__(self, *args, job: Job, sync=None, tenant: Optional[Tenant] = None, **kwargs):
+    def __init__(self, job: Job, sync=None, tenant: Optional[Tenant] = None):
         """Initialize Nautobot.
 
         Args:
@@ -51,7 +51,7 @@ class NautobotAdapter(Adapter):
             sync (object, optional): Nautobot DiffSync. Defaults to None.
             tenant (Tenant, optional): Tenant to associate imported objects with. Used to filter loaded objects.
         """
-        super().__init__(*args, **kwargs)
+        super().__init__()
         self.job = job
         self.sync = sync
         self.tenant = tenant
@@ -184,7 +184,7 @@ class NautobotAdapter(Adapter):
                     new_mapping.model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
                 self.add(new_mapping)
 
-    def sync_complete(self, source: Adapter, diff, *args, **kwargs):
+    def sync_complete(self, source: Adapter, diff):
         """Label and clean up function for DiffSync sync.
 
         Once the sync is complete, this function labels all imported objects and then
@@ -203,7 +203,7 @@ class NautobotAdapter(Adapter):
                 except ProtectedError:
                     self.job.logger.info(f"Deletion failed protected object: {nautobot_obj}")
             self.objects_to_delete[grouping] = []
-        return super().sync_complete(source, diff, *args, **kwargs)
+        return super().sync_complete(source, diff)
 
     def load(self):
         """Load data from Nautobot into DiffSync models."""

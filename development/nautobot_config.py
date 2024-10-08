@@ -1,11 +1,11 @@
 """Nautobot development configuration file."""
+
 # pylint: disable=invalid-envvar-default
 import os
 import sys
 
 from nautobot.core.settings import *  # noqa: F403
-from nautobot.core.settings_funcs import parse_redis_connection, is_truthy
-
+from nautobot.core.settings_funcs import is_truthy, parse_redis_connection
 
 #
 # Misc. settings

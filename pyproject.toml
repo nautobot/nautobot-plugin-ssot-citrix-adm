@@ -62,6 +62,7 @@ jsonschema = "*"
 python-semantic-release = "*"
 
 [tool.poetry.extras]
+all = ["nautobot", "nautobot-device-lifecycle-mgmt"]
 nautobot = ["nautobot"]
 nautobot-device-lifecycle-mgmt = ["nautobot-device-lifecycle-mgmt"]
 

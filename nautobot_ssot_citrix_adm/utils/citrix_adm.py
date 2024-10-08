@@ -1,8 +1,10 @@
 """Utility functions for working with Citrix ADM."""
+
 import re
-from typing import List, Union, Optional, Tuple
+from typing import List, Optional, Tuple, Union
+
 import requests
-from netutils.ip import netmask_to_cidr, is_ip_within, ipaddress_interface
+from netutils.ip import ipaddress_interface, is_ip_within, netmask_to_cidr
 
 
 # based on client found at https://github.com/slauger/python-nitro

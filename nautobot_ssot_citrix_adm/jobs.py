@@ -6,8 +6,8 @@ from nautobot.extras.jobs import BooleanVar, Job, MultiObjectVar, ObjectVar
 from nautobot.extras.models import ExternalIntegration
 from nautobot.tenancy.models import Tenant
 from nautobot_ssot.jobs.base import DataSource, DataTarget
-from nautobot_ssot_citrix_adm.diffsync.adapters import citrix_adm, nautobot
 
+from nautobot_ssot_citrix_adm.diffsync.adapters import citrix_adm, nautobot
 
 PLUGIN_CFG = settings.PLUGINS_CONFIG["nautobot_ssot_citrix_adm"]
 

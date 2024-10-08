@@ -1,12 +1,15 @@
 """Tests to validate utility functions for Nautobot."""
+
 import sys
 from unittest import skip
 from unittest.mock import MagicMock
+
 from django.contrib.contenttypes.models import ContentType
+from nautobot.core.testing import TransactionTestCase
 from nautobot.dcim.models import Device, DeviceType, Location, LocationType, Manufacturer, Platform
 from nautobot.extras.models import Relationship, RelationshipAssociation, Role, Status
-from nautobot.core.testing import TransactionTestCase
 from nautobot_device_lifecycle_mgmt.models import SoftwareLCM
+
 from nautobot_ssot_citrix_adm.utils.nautobot import add_software_lcm, assign_version_to_device
 
 
@@ -87,6 +90,7 @@ class TestUtilsNautobot(TransactionTestCase):  # pylint: disable=too-many-instan
             from nautobot_device_lifecycle_mgmt.models import (  # noqa: F401, pylint: disable=redefined-outer-name,reimported,import-outside-toplevel,unused-import
                 SoftwareLCM,
             )
+
             from nautobot_ssot_citrix_adm.utils.nautobot import (  # pylint: disable=import-outside-toplevel
                 LIFECYCLE_MGMT,
             )

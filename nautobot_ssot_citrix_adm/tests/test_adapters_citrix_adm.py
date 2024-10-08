@@ -1,16 +1,19 @@
 """Test Citrix ADM adapter."""
+
 from unittest.mock import MagicMock
+
 from diffsync.exceptions import ObjectNotFound
-from nautobot.extras.models import JobResult
 from nautobot.core.testing import TransactionTestCase
+from nautobot.extras.models import JobResult
+
 from nautobot_ssot_citrix_adm.diffsync.adapters.citrix_adm import CitrixAdmAdapter
 from nautobot_ssot_citrix_adm.jobs import CitrixAdmDataSource
 from nautobot_ssot_citrix_adm.tests.fixtures import (
-    SITE_FIXTURE_RECV,
-    DEVICE_FIXTURE_RECV,
-    VLAN_FIXTURE_RECV,
-    NSIP6_FIXTURE_RECV,
     ADM_DEVICE_MAP_FIXTURE,
+    DEVICE_FIXTURE_RECV,
+    NSIP6_FIXTURE_RECV,
+    SITE_FIXTURE_RECV,
+    VLAN_FIXTURE_RECV,
 )
 
 

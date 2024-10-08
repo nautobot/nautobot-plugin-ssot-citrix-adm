@@ -1,9 +1,11 @@
 """Test Nautobot adapter."""
 
 from unittest.mock import MagicMock
+
+from diffsync.exceptions import ObjectNotFound
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import ProtectedError
-from diffsync.exceptions import ObjectNotFound
+from nautobot.core.testing import TransactionTestCase
 from nautobot.dcim.models import (
     Device,
     DeviceType,
@@ -12,10 +14,10 @@ from nautobot.dcim.models import (
     LocationType,
     Manufacturer,
 )
-from nautobot.extras.models import Status, JobResult, Role
+from nautobot.extras.models import JobResult, Role, Status
 from nautobot.ipam.models import IPAddress, IPAddressToInterface, Namespace, Prefix
-from nautobot.core.testing import TransactionTestCase
 from nautobot.tenancy.models import Tenant
+
 from nautobot_ssot_citrix_adm.diffsync.adapters.nautobot import NautobotAdapter
 from nautobot_ssot_citrix_adm.jobs import CitrixAdmDataSource
 
