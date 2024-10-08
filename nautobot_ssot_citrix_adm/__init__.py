@@ -1,4 +1,5 @@
 """Plugin declaration for nautobot_ssot_citrix_adm."""
+
 # Metadata is inherited from Nautobot. If not including Nautobot in the environment, this should be added
 try:
     from importlib import metadata
@@ -7,6 +8,7 @@ except ImportError:
     import importlib_metadata as metadata
 from nautobot.core.signals import nautobot_database_ready
 from nautobot.extras.plugins import PluginConfig
+
 from nautobot_ssot_citrix_adm.signals import nautobot_database_ready_callback
 
 __version__ = metadata.version(__name__)
@@ -22,7 +24,7 @@ class NautobotSsotCitrixAdmConfig(PluginConfig):
     description = "Nautobot SSoT Citrix ADM."
     base_url = "ssot-citrix-adm"
     required_settings = []
-    min_version = "2.1.0"
+    min_version = "2.2.0"
     max_version = "2.9999"
     default_settings = {"update_sites": True, "hostname_mapping": []}
     caching_config = {}
