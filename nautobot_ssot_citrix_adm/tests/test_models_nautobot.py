@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock
 
-from diffsync import DiffSync
+from diffsync import Adapter
 from django.test import override_settings
 from nautobot.core.testing import TransactionTestCase
 from nautobot.dcim.models import Location, LocationType
@@ -17,9 +17,9 @@ class TestNautobotDatacenter(TransactionTestCase):
     def setUp(self):
         """Configure shared objects."""
         super().setUp()
-        self.diffsync = DiffSync()
-        self.diffsync.job = MagicMock()
-        self.diffsync.job.logger.warning = MagicMock()
+        self.adapter = Adapter()
+        self.adapter.job = MagicMock()
+        self.adapter.job.logger.warning = MagicMock()
         self.status_active = Status.objects.get(name="Active")
         self.test_dc = NautobotDatacenter(name="Test", region="", latitude=None, longitude=None, uuid=None)
         self.global_region = Location.objects.create(
@@ -37,7 +37,7 @@ class TestNautobotDatacenter(TransactionTestCase):
         self.site_obj.delete()
         ids = {"name": "HQ", "region": "Global"}
         attrs = {"latitude": 12.345, "longitude": -67.89}
-        result = NautobotDatacenter.create(self.diffsync, ids, attrs)
+        result = NautobotDatacenter.create(self.adapter, ids, attrs)
         self.assertIsInstance(result, NautobotDatacenter)
 
         site_obj = Location.objects.get(name="HQ")
@@ -49,8 +49,8 @@ class TestNautobotDatacenter(TransactionTestCase):
         """Validate the NautobotDatacenter create() method handling of duplicate Site."""
         ids = {"name": "HQ", "region": ""}
         attrs = {}
-        NautobotDatacenter.create(self.diffsync, ids, attrs)
-        self.diffsync.job.logger.warning.assert_called_with("Site HQ already exists so skipping creation.")
+        NautobotDatacenter.create(self.adapter, ids, attrs)
+        self.adapter.job.logger.warning.assert_called_with("Site HQ already exists so skipping creation.")
 
     @override_settings(PLUGINS_CONFIG={"nautobot_ssot_citrix_adm": {"update_sites": True}})
     def test_update(self):
@@ -69,10 +69,10 @@ class TestNautobotDatacenter(TransactionTestCase):
     @override_settings(PLUGINS_CONFIG={"nautobot_ssot_citrix_adm": {"update_sites": False}})
     def test_update_setting_disabled(self):
         """Validate the NautobotDatacenter update() method doesn't update a Site if setting is False."""
-        self.test_dc.diffsync = MagicMock()
-        self.test_dc.diffsync.job = MagicMock()
-        self.test_dc.diffsync.job.logger.warning = MagicMock()
+        self.test_dc.adapter = MagicMock()
+        self.test_dc.adapter.job = MagicMock()
+        self.test_dc.adapter.job.logger.warning = MagicMock()
         NautobotDatacenter.update(self=self.test_dc, attrs={})
-        self.test_dc.diffsync.job.logger.warning.assert_called_once_with(
+        self.test_dc.adapter.job.logger.warning.assert_called_once_with(
             "Update sites setting is disabled so skipping updating Test."
         )
