@@ -3368,13 +3368,13 @@ six = ">=1.5"
 
 [[package]]
 name = "python-gitlab"
-version = "4.12.2"
+version = "4.13.0"
 description = "A python wrapper for the GitLab API"
 optional = false
 python-versions = ">=3.8.0"
 files = [
-    {file = "python_gitlab-4.12.2-py3-none-any.whl", hash = "sha256:c4476372112f920c37555e5e2b02d7092220cf4a4cb9f37dfdb35c569e89415a"},
-    {file = "python_gitlab-4.12.2.tar.gz", hash = "sha256:8c140a2603ad8eff7fcab6f3faabf5fc8baaba8def125eb309a32d6aa3a23a56"},
+    {file = "python_gitlab-4.13.0-py3-none-any.whl", hash = "sha256:8299a054fb571da16e1a8c1868fff01f34ac41ea1410c713a4647b3bbb2aa279"},
+    {file = "python_gitlab-4.13.0.tar.gz", hash = "sha256:576bfb0901faca0c6b2d1ff2592e02944a6ec3e086c3129fb43c2a0df56a1c67"},
 ]
 
 [package.dependencies]
@@ -3402,13 +3402,13 @@ dev = ["coverage[toml]", "coveralls (>=3.3,<4.0)", "ruff", "twine"]
 
 [[package]]
 name = "python-semantic-release"
-version = "9.9.0"
+version = "9.10.0"
 description = "Automatic Semantic Versioning for Python projects"
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "python_semantic_release-9.9.0-py3-none-any.whl", hash = "sha256:d2475e2c55cba02c723467d4f7562cd91f2b2d29085f7a5fbbf7c9d1b9ce2256"},
-    {file = "python_semantic_release-9.9.0.tar.gz", hash = "sha256:7349ec28b9c52319bae82fb2b9dc1202e10a486cbbeedc38ef9392462ec1c7d7"},
+    {file = "python_semantic_release-9.10.0-py3-none-any.whl", hash = "sha256:05a29ce7441e486cfd09d455cfb32abeb64b9c94eb4d2d148ff280578fd95558"},
+    {file = "python_semantic_release-9.10.0.tar.gz", hash = "sha256:45a0199f7805dfe76bb57b932be4a9a5a3f7ff03a897c375eb5a1fa5dcfe5608"},
 ]
 
 [package.dependencies]
@@ -4498,10 +4498,11 @@ test = ["big-O", "importlib-resources", "jaraco.functools", "jaraco.itertools", 
 type = ["pytest-mypy"]
 
 [extras]
+all = ["nautobot", "nautobot-device-lifecycle-mgmt"]
 nautobot = ["nautobot"]
 nautobot-device-lifecycle-mgmt = ["nautobot-device-lifecycle-mgmt"]
 
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.8,<3.13"
-content-hash = "0f97e68c05902e7810e2e295687b6afccb05f7d711c722351fdf2b2f29c6ef34"
+content-hash = "e3873a93be5210581b396cc4342806d2102d53e65a12a79ce341eef956a6bf4a"
