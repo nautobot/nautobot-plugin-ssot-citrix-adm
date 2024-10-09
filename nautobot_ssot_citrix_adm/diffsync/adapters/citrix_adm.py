@@ -17,6 +17,7 @@ from nautobot_ssot_citrix_adm.diffsync.models.citrix_adm import (
     CitrixAdmDatacenter,
     CitrixAdmDevice,
     CitrixAdmIPAddressOnInterface,
+    CitrixAdmOSVersion,
     CitrixAdmPort,
     CitrixAdmSubnet,
 )
@@ -36,13 +37,14 @@ class CitrixAdmAdapter(Adapter):
     """DiffSync adapter for Citrix ADM."""
 
     datacenter = CitrixAdmDatacenter
+    osversion = CitrixAdmOSVersion
     device = CitrixAdmDevice
     address = CitrixAdmAddress
     prefix = CitrixAdmSubnet
     port = CitrixAdmPort
     ip_on_intf = CitrixAdmIPAddressOnInterface
 
-    top_level = ["datacenter", "device", "prefix", "address", "ip_on_intf"]
+    top_level = ["datacenter", "osversion", "device", "prefix", "address", "ip_on_intf"]
 
     def __init__(
         self,
@@ -116,6 +118,8 @@ class CitrixAdmAdapter(Adapter):
                 role = parse_hostname_for_role(
                     hostname_map=PLUGIN_CFG.get("hostname_mapping"), device_hostname=dev["hostname"]
                 )
+                version = parse_version(dev["version"])
+                self.get_or_instantiate(self.osversion, ids={"version": version}, attrs={})
                 new_dev = self.device(
                     name=dev["hostname"],
                     model=DEVICETYPE_MAP[dev["type"]] if dev["type"] in DEVICETYPE_MAP else dev["type"],
@@ -124,7 +128,7 @@ class CitrixAdmAdapter(Adapter):
                     site=site["name"],
                     status="Active" if dev["instance_state"] == "Up" else "Offline",
                     tenant=self.tenant.name if self.tenant else None,
-                    version=parse_version(dev["version"]),
+                    version=version,
                     uuid=None,
                     hanode=dev["ha_ip_address"],
                 )

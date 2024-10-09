@@ -18,6 +18,7 @@ from nautobot_ssot_citrix_adm.diffsync.models.nautobot import (
     NautobotDatacenter,
     NautobotDevice,
     NautobotIPAddressOnInterface,
+    NautobotOSVersion,
     NautobotPort,
     NautobotSubnet,
 )
@@ -28,13 +29,14 @@ class NautobotAdapter(Adapter):
     """DiffSync adapter for Nautobot."""
 
     datacenter = NautobotDatacenter
+    osversion = NautobotOSVersion
     device = NautobotDevice
     port = NautobotPort
     prefix = NautobotSubnet
     address = NautobotAddress
     ip_on_intf = NautobotIPAddressOnInterface
 
-    top_level = ["datacenter", "device", "prefix", "address", "ip_on_intf"]
+    top_level = ["datacenter", "osversion", "device", "prefix", "address", "ip_on_intf"]
 
     def __init__(self, job: Job, sync=None, tenant: Optional[Tenant] = None):
         """Initialize Nautobot.
@@ -77,6 +79,12 @@ class NautobotAdapter(Adapter):
             if self.job.debug:
                 self.job.logger.info(f"Loading Device {dev.name} from Nautobot.")
             hanode = dev._custom_field_data.get("ha_node")
+            if dev.software_version:
+                self.get_or_instantiate(
+                    self.osversion,
+                    ids={"version": dev.software_version.version},
+                    attrs={"uuid": dev.software_version.id},
+                )
             new_dev = self.device(
                 name=dev.name,
                 model=dev.device_type.model,
@@ -85,7 +93,7 @@ class NautobotAdapter(Adapter):
                 site=dev.location.name,
                 status=dev.status.name,
                 tenant=dev.tenant.name if dev.tenant else "",
-                version=dev.software_version.version,
+                version=dev.software_version.version if dev.software_version else None,
                 uuid=dev.id,
                 hanode=hanode,
             )

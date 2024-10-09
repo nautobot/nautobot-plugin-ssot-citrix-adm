@@ -5,6 +5,7 @@ from nautobot_ssot_citrix_adm.diffsync.models.base import (
     Datacenter,
     Device,
     IPAddressOnInterface,
+    OSVersion,
     Port,
     Subnet,
 )
@@ -24,6 +25,23 @@ class CitrixAdmDatacenter(Datacenter):
 
     def delete(self):
         """Delete Site in Citrix ADM from Datacenter object."""
+        return self
+
+
+class CitrixAdmOSVersion(OSVersion):
+    """Citrix ADM implementation of OSVersion DiffSync model."""
+
+    @classmethod
+    def create(cls, adapter, ids, attrs):
+        """Create OSVersion in Citrix ADM from OSVersion object."""
+        return super().create(adapter=adapter, ids=ids, attrs=attrs)
+
+    def update(self, attrs):
+        """Update OSVersion in Citrix ADM from OSVersion object."""
+        return super().update(attrs)
+
+    def delete(self):
+        """Delete OSVersion in Citrix ADM from OSVersion object."""
         return self
 
 

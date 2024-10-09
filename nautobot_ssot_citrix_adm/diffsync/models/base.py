@@ -26,6 +26,18 @@ class Datacenter(DiffSyncModel):
     uuid: Optional[UUID] = None
 
 
+class OSVersion(DiffSyncModel):
+    """DiffSync model for Citrix ADM device OS versions."""
+
+    _modelname = "osversion"
+    _identifiers = ("version",)
+    _attributes = ()
+
+    version: str
+
+    uuid: Optional[UUID] = None
+
+
 class Device(DiffSyncModel):
     """DiffSync model for Citrix ADM devices."""
 

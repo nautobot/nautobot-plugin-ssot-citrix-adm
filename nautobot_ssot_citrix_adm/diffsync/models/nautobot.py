@@ -5,7 +5,7 @@ from datetime import datetime
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import Device as NewDevice
-from nautobot.dcim.models import DeviceType, Interface, Location, LocationType, Manufacturer, Platform
+from nautobot.dcim.models import DeviceType, Interface, Location, LocationType, Manufacturer, Platform, SoftwareVersion
 from nautobot.extras.models import Role, Status, Tag
 from nautobot.ipam.models import IPAddress, IPAddressToInterface, Namespace, Prefix
 from nautobot.tenancy.models import Tenant
@@ -15,6 +15,7 @@ from nautobot_ssot_citrix_adm.diffsync.models.base import (
     Datacenter,
     Device,
     IPAddressOnInterface,
+    OSVersion,
     Port,
     Subnet,
 )
@@ -61,6 +62,28 @@ class NautobotDatacenter(Datacenter):
             site.longitude = attrs["longitude"]
         site.validated_save()
         return super().update(attrs)
+
+
+class NautobotOSVersion(OSVersion):
+    """Nautobot implementation of Citrix ADM Device model."""
+
+    @classmethod
+    def create(cls, adapter, ids, attrs):
+        """Create SoftwareVersion in Nautobot from NautobotOSVersion object."""
+        new_ver = SoftwareVersion(
+            version=ids["version"],
+            platform=Platform.objects.get(name="citrix.adc"),
+            status=Status.objects.get(name="Active"),
+        )
+        new_ver.validated_save()
+        return super().create(adapter=adapter, ids=ids, attrs=attrs)
+
+    def delete(self):
+        """Delete SoftwareVersion in Nautobot from NautobotOSVersion object."""
+        ver = SoftwareVersion.objects.get(id=self.uuid)
+        super().delete()
+        ver.delete()
+        return self
 
 
 class NautobotDevice(Device):
