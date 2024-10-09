@@ -166,7 +166,7 @@ class NautobotAdapter(Adapter):
                     new_mapping.model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
                 self.add(new_mapping)
 
-    def sync_complete(self, source: Adapter, diff):  # pylint: disable=arguments-differ
+    def sync_complete(self, source: Adapter, *args, **kwargs):
         """Label and clean up function for DiffSync sync.
 
         Once the sync is complete, this function labels all imported objects and then
@@ -174,7 +174,8 @@ class NautobotAdapter(Adapter):
 
         Args:
             source: The DiffSync whose data was used to update this instance.
-            diff: The Diff calculated prior to the sync operation.
+            *args: Positional arguments.
+            **kwargs: Keyword arguments.
         """
         for grouping in ["addresses", "prefixes", "ports", "devices"]:
             for nautobot_obj in self.objects_to_delete[grouping]:
@@ -185,7 +186,7 @@ class NautobotAdapter(Adapter):
                 except ProtectedError:
                     self.job.logger.info(f"Deletion failed protected object: {nautobot_obj}")
             self.objects_to_delete[grouping] = []
-        return super().sync_complete(source, diff)
+        return super().sync_complete(source, *args, **kwargs)
 
     def load(self):
         """Load data from Nautobot into DiffSync models."""
