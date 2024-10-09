@@ -98,6 +98,7 @@ class NautobotDevice(Device):
         lb_dt, _ = DeviceType.objects.get_or_create(
             model=attrs["model"], manufacturer=Manufacturer.objects.get(name="Citrix")
         )
+        citrix_platform = Platform.objects.get(name="citrix.adc")
         new_device = NewDevice(
             name=ids["name"],
             status=Status.objects.get(name=attrs["status"]),
@@ -105,12 +106,14 @@ class NautobotDevice(Device):
             location=Location.objects.get(name=attrs["site"]),
             device_type=lb_dt,
             serial=attrs["serial"],
-            platform=Platform.objects.get(name="citrix.adc"),
+            platform=citrix_platform,
         )
         if attrs.get("tenant"):
             new_device.tenant = Tenant.objects.update_or_create(name=attrs["tenant"])[0]
         if attrs.get("version"):
-            new_device.custom_field_data.update({"os_version": attrs["version"]})
+            new_device.software_version = SoftwareVersion.objects.get(
+                version=attrs["version"], platform=citrix_platform
+            )
         if attrs.get("hanode"):
             new_device.custom_field_data["ha_node"] = attrs["hanode"]
         new_device.custom_field_data["system_of_record"] = "Citrix ADM"
