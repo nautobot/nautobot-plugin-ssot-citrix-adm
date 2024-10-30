@@ -50,11 +50,13 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
     def build_nautobot_objects(self):
         """Build out Nautobot objects to test loading."""
         test_tenant = Tenant.objects.get_or_create(name="Test")[0]
-        region_type = LocationType.objects.get(name="Region")
+        region_type = LocationType.objects.get_or_create(name="Region", nestable=True)[0]
         self.ny_region = Location.objects.create(name="NY", location_type=region_type, status=self.status_active)
         self.ny_region.validated_save()
 
-        site_type = LocationType.objects.get(name="Site")
+        site_type = LocationType.objects.get_or_create(name="Site", parent=region_type)[0]
+        self.job.dc_loctype = site_type
+        self.job.parent_location = self.ny_region
         self.hq_site = Location.objects.create(
             parent=self.ny_region, name="HQ", location_type=site_type, status=self.status_active
         )

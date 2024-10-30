@@ -5,7 +5,7 @@ from datetime import datetime
 from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from nautobot.dcim.models import Device as NewDevice
-from nautobot.dcim.models import DeviceType, Interface, Location, LocationType, Manufacturer, Platform, SoftwareVersion
+from nautobot.dcim.models import DeviceType, Interface, Location, Manufacturer, Platform, SoftwareVersion
 from nautobot.extras.models import Role, Status, Tag
 from nautobot.ipam.models import IPAddress, IPAddressToInterface, Namespace, Prefix
 from nautobot.tenancy.models import Tenant
@@ -28,25 +28,21 @@ class NautobotDatacenter(Datacenter):
     def create(cls, adapter, ids, attrs):
         """Create Site in Nautobot from NautobotDatacenter object."""
         status_active = Status.objects.get(name="Active")
-        global_region = Location.objects.get_or_create(
-            name="Global", location_type=LocationType.objects.get(name="Region"), status=status_active
-        )[0]
-        site_loctype = LocationType.objects.get(name="Site")
+        if adapter.job.dc_loctype.parent and ids.get("region"):
+            parent_loc = Location.objects.get_or_create(
+                name=ids["region"], location_type=adapter.job.dc_loctype.parent, status=status_active
+            )[0]
         if Location.objects.filter(name=ids["name"]).exists():
             adapter.job.logger.warning(f"Site {ids['name']} already exists so skipping creation.")
             return None
         new_site = Location(
             name=ids["name"],
-            parent=global_region,
+            parent=parent_loc if parent_loc else None,
             status=status_active,
             latitude=attrs["latitude"],
             longitude=attrs["longitude"],
-            location_type=site_loctype,
+            location_type=adapter.job.dc_loctype,
         )
-        if ids.get("region"):
-            new_site.parent = Location.objects.get_or_create(
-                name=ids["region"], location_type=LocationType.objects.get(name="Region"), status=status_active
-            )[0]
         new_site.validated_save()
         return super().create(adapter=adapter, ids=ids, attrs=attrs)
 
@@ -103,7 +99,7 @@ class NautobotDevice(Device):
             name=ids["name"],
             status=Status.objects.get(name=attrs["status"]),
             role=lb_role,
-            location=Location.objects.get(name=attrs["site"]),
+            location=Location.objects.get(name=attrs["site"], location_type=adapter.job.dc_loctype),
             device_type=lb_dt,
             serial=attrs["serial"],
             platform=citrix_platform,

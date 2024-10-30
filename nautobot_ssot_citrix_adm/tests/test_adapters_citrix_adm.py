@@ -47,6 +47,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
         self.citrix_adm_client.get_nsip6.side_effect = NSIP6_FIXTURE_RECV
         self.job = CitrixAdmDataSource()
         self.job.debug = True
+        self.job.location_map = {}
         self.job.logger.warning = MagicMock()
         self.job.logger.info = MagicMock()
         self.job.job_result = JobResult.objects.create(

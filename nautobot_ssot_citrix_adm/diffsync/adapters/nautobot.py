@@ -8,7 +8,7 @@ from diffsync.enum import DiffSyncModelFlags
 from diffsync.exceptions import ObjectNotFound
 from django.db.models import ProtectedError
 from nautobot.dcim.models import Device as OrmDevice
-from nautobot.dcim.models import Interface, Location, LocationType
+from nautobot.dcim.models import Interface, Location
 from nautobot.extras.models import Job
 from nautobot.ipam.models import IPAddress, IPAddressToInterface, Prefix
 from nautobot.tenancy.models import Tenant
@@ -54,10 +54,9 @@ class NautobotAdapter(Adapter):
 
     def load_sites(self):
         """Load Sites from Nautobot into DiffSync models."""
-        site_loctype = LocationType.objects.get(name="Site")
-        for site in Location.objects.filter(location_type=site_loctype):
+        for site in Location.objects.filter(location_type=self.job.dc_loctype):
             if self.job.debug:
-                self.job.logger.info(f"Loading Site {site.name} from Nautobot.")
+                self.job.logger.info(f"Loading {self.job.dc_loctype.name} {site.name} from Nautobot.")
             new_dc = self.datacenter(
                 name=site.name,
                 region=site.parent.name if site.parent else "",

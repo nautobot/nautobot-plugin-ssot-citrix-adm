@@ -1,15 +1,14 @@
 """Jobs for Citrix ADM SSoT integration."""
 
-from django.conf import settings
 from nautobot.core.celery import register_jobs
-from nautobot.extras.jobs import BooleanVar, Job, MultiObjectVar, ObjectVar
+from nautobot.dcim.models import Location, LocationType
+from nautobot.extras.jobs import BooleanVar, Job, JSONVar, MultiObjectVar, ObjectVar
 from nautobot.extras.models import ExternalIntegration
 from nautobot.tenancy.models import Tenant
 from nautobot_ssot.jobs.base import DataSource, DataTarget
 
 from nautobot_ssot_citrix_adm.diffsync.adapters import citrix_adm, nautobot
-
-PLUGIN_CFG = settings.PLUGINS_CONFIG["nautobot_ssot_citrix_adm"]
+from nautobot_ssot_citrix_adm.exceptions import JobException
 
 name = "Citrix ADM SSoT"  # pylint: disable=invalid-name
 
@@ -23,6 +22,30 @@ class CitrixAdmDataSource(DataSource, Job):  # pylint: disable=too-many-instance
         display_field="display",
         label="Citrix ADM Instances",
         required=True,
+    )
+    dc_loctype = ObjectVar(
+        model=LocationType,
+        queryset=LocationType.objects.all(),
+        query_params={"content_types": "dcim.device"},
+        display_field="display",
+        label="Datacenter LocationType",
+        description="LocationType to use when importing Datacenters from Citrix ADM. Must have Device ContentType.",
+        required=True,
+    )
+    parent_location = ObjectVar(
+        model=Location,
+        queryset=Location.objects.all(),
+        query_params={"location_type": "$dc_loctype.parent"},
+        display_field="display",
+        label="Parent Location",
+        description="Parent Location to assign to imported Datacenters. Required if parent is specified on Datacenter LocationType.",
+        required=False,
+    )
+    location_map = JSONVar(
+        label="Location Map",
+        description="Mapping of Datacenter name to parent and name. Ex: {'US': {'name': 'United States', 'parent': 'North America'}}.",
+        default={},
+        required=False,
     )
     tenant = ObjectVar(model=Tenant, queryset=Tenant.objects.all(), display_field="display_name", required=False)
     debug = BooleanVar(description="Enable for more verbose debug logging", default=False)
@@ -57,6 +80,18 @@ class CitrixAdmDataSource(DataSource, Job):  # pylint: disable=too-many-instance
         self.target_adapter = nautobot.NautobotAdapter(job=self, sync=self.sync, tenant=self.tenant)
         self.target_adapter.load()
 
+    def validate_job_settings(self):
+        """Validate the settings defined in the Job form are correct."""
+        if (
+            self.dc_loctype.parent
+            and not self.parent_location
+            and (self.location_map and not all(bool("parent" in value) for value in self.location_map.values()))
+        ):
+            self.logger.error(
+                f"{self.dc_loctype.name} requires a parent Location and you've not specified a parent Location. Please review your Job settings."
+            )
+            raise JobException(message=f"Parent Location is required for {self.dc_loctype.name} LocationType.")
+
     def run(  # pylint: disable=arguments-differ, too-many-arguments
         self, dryrun, memory_profiling, instances, tenant, debug, *args, **kwargs
     ):
@@ -65,6 +100,10 @@ class CitrixAdmDataSource(DataSource, Job):  # pylint: disable=too-many-instance
         self.tenant = tenant
         self.debug = debug
         self.dryrun = dryrun
+        self.dc_loctype = kwargs["dc_loctype"]
+        self.parent_location = kwargs["parent_location"]
+        self.location_map = kwargs["location_map"]
+        self.validate_job_settings()
         self.memory_profiling = memory_profiling
         super().run(dryrun=self.dryrun, memory_profiling=self.memory_profiling, *args, **kwargs)
 
