@@ -75,6 +75,18 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
             "Duplicate Site attempting to be loaded: {'city': 'New York City', 'zipcode': '10018', 'type': '1', 'name': 'NTC Corporate HQ', 'region': 'North', 'country': 'USA', 'longitude': '-73.989429', 'id': '7d29e100-ae0c-4580-ba86-b72df0b6cfd8', 'latitude': '40.753146'}."
         )
 
+    def test_load_site_w_location_map(self):
+        """Test Nautobot SSoT Citrix ADM load_site() function with location_map from Job form."""
+        site_info = SITE_FIXTURE_RECV[3]
+        self.job.debug = True
+        self.job.location_map = {"Apple Inc.": {"name": "Apple", "parent": "Cupertino"}}
+        self.citrix_adm.load_site(site_info=site_info)
+        self.assertEqual(
+            {"Apple__Cupertino"},
+            {site.get_unique_id() for site in self.citrix_adm.get_all("datacenter")},
+        )
+        self.job.logger.info.assert_called_with("Attempting to load DC: Apple")
+
     def test_load_devices(self):
         """Test the Nautobot SSoT Citrix ADM load_devices() function."""
         self.citrix_adm.adm_site_map[DEVICE_FIXTURE_RECV[0]["datacenter_id"]] = SITE_FIXTURE_RECV[1]
