@@ -114,6 +114,7 @@ class CitrixNitroClient:
 
     def get_sites(self):
         """Gather all sites configured on MAS/ADM instance."""
+        if self.job.debug:
             self.job.logger.info("Getting sites from Citrix ADM.")
         endpoint = "config"
         objecttype = "mps_datacenter"
@@ -121,11 +122,13 @@ class CitrixNitroClient:
         result = self.request("GET", endpoint, objecttype, params=params)
         if result:
             return result[objecttype]
+        if self.job.debug:
             self.job.logger.error("Error getting sites from Citrix ADM.")
         return {}
 
     def get_devices(self):
         """Gather all devices registered to MAS/ADM instance."""
+        if self.job.debug:
             self.job.logger.info("Getting devices from Citrix ADM.")
         endpoint = "config"
         objecttype = "managed_device"
@@ -149,6 +152,7 @@ class CitrixNitroClient:
         result = self.request("GET", endpoint, objecttype, params=params)
         if result:
             return result[objecttype]
+        if self.job.debug:
             self.job.logger.error(f"Error getting nsip from {adc['hostname']}")
         return {}
 
@@ -163,7 +167,7 @@ class CitrixNitroClient:
         result = self.request("GET", endpoint, objecttype, params=params)
         if result:
             return result[objecttype]
-        self.log.logger.warning(f"Error getting nsip6 from {adc['hostname']}")
+        if self.job.debug:
             self.job.logger.error(f"Error getting nsip6 from {adc['hostname']}")
         return {}
 
@@ -178,7 +182,7 @@ class CitrixNitroClient:
         result = self.request("GET", endpoint, objecttype, params=params)
         if result:
             return result[objecttype]
-        self.log.logger.warning(f"Error getting vlan bindings from {adc['hostname']}")
+        if self.job.debug:
             self.job.logger.error(f"Error getting vlan bindings from {adc['hostname']}")
         return {}
 
