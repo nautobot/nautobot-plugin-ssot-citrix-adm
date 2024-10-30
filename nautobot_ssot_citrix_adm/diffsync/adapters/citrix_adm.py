@@ -82,19 +82,39 @@ class CitrixAdmAdapter(Adapter):
         Args:
             site_info (dict): Dictionary containing information about Datacenter to be imported.
         """
+        if not site_info.get("name"):
+            self.job.logger.error(f"Site is missing name so won't be loaded. {site_info}")
+            return None
+        site_name = site_info["name"]
+        if self.job.location_map and site_name in self.job.location_map:
+            parent_loc = self.job.location_map[site_name]["parent"]
+            if "name" in self.job.location_map[site_name]:
+                site_name = self.job.location_map[site_name]["name"]
+        elif self.job.parent_location:
+            parent_loc = self.job.parent_location.name
+        elif site_info.get("region"):
+            parent_loc = site_info["region"]
+            if (
+                self.job.location_map
+                and parent_loc in self.job.location_map
+                and "name" in self.job.location_map[parent_loc]
+            ):
+                parent_loc = self.job.location_map[parent_loc]["name"]
+        else:
+            parent_loc = "Global"
         try:
             found_site = self.get(
                 self.datacenter,
-                {"name": site_info.get("name"), "region": site_info["region"] if site_info.get("region") else "Global"},
+                {"name": site_info["name"], "region": parent_loc},
             )
             if found_site and self.job.debug:
                 self.job.logger.warning(f"Duplicate Site attempting to be loaded: {site_info}.")
         except ObjectNotFound:
             if self.job.debug:
-                self.job.logger.info(f"Attempting to load DC: {site_info['name']}")
+                self.job.logger.info(f"Attempting to load DC: {site_name}")
             new_site = self.datacenter(
-                name=site_info["name"],
-                region=site_info["region"] if site_info.get("region") else "Global",
+                name=site_name,
+                region=parent_loc,
                 latitude=float(round(Decimal(site_info["latitude"] if site_info["latitude"] else 0.0), 6)),
                 longitude=float(round(Decimal(site_info["longitude"] if site_info["longitude"] else 0.0), 6)),
                 uuid=None,
@@ -115,6 +135,13 @@ class CitrixAdmAdapter(Adapter):
             except ObjectNotFound:
                 site = self.adm_site_map[dev["datacenter_id"]]
                 self.load_site(site_info=site)
+                site_name = site["name"]
+                if (
+                    self.job.location_map
+                    and site_name in self.job.location_map
+                    and "name" in self.job.location_map[site_name]
+                ):
+                    site_name = self.job.location_map[site_name]["name"]
                 role = parse_hostname_for_role(
                     hostname_map=PLUGIN_CFG.get("hostname_mapping"), device_hostname=dev["hostname"]
                 )
@@ -125,7 +152,7 @@ class CitrixAdmAdapter(Adapter):
                     model=DEVICETYPE_MAP[dev["type"]] if dev["type"] in DEVICETYPE_MAP else dev["type"],
                     role=role,
                     serial=dev["serialnumber"],
-                    site=site["name"],
+                    site=site_name,
                     status="Active" if dev["instance_state"] == "Up" else "Offline",
                     tenant=self.tenant.name if self.tenant else None,
                     version=version,
