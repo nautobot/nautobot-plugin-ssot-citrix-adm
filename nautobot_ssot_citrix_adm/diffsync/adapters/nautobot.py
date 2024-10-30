@@ -59,7 +59,7 @@ class NautobotAdapter(Adapter):
                 self.job.logger.info(f"Loading {self.job.dc_loctype.name} {site.name} from Nautobot.")
             new_dc = self.datacenter(
                 name=site.name,
-                region=site.parent.name if site.parent else "",
+                region=site.parent.name if site.parent else None,
                 latitude=float(round(site.latitude, 6)) if site.latitude else None,
                 longitude=float(round(site.longitude, 6)) if site.longitude else None,
                 uuid=site.id,
