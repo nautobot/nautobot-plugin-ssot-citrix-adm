@@ -291,7 +291,7 @@ class CitrixAdmAdapter(Adapter):
                     user=username,
                     password=password,
                     verify=instance.verify_ssl,
-                    logger=self.job,
+                    job=self.job,
                 )
                 self.conn.login()
                 self.adm_site_map = {}

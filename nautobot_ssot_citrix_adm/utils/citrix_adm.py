@@ -12,7 +12,7 @@ class CitrixNitroClient:
     """Client for interacting with Citrix ADM NITRO API."""
 
     def __init__(  # pylint: disable=too-many-arguments
-        self, base_url: str, user: str, password: str, logger, verify: bool = True
+        self, base_url: str, user: str, password: str, job, verify: bool = True
     ):
         """Initialize NITRO client.
 
@@ -21,7 +21,7 @@ class CitrixNitroClient:
             user (str): Username to authenticate with Citrix ADM.
             password (str): Password to authenticate with Citrix ADM.
             verify (bool, optional): Whether to validate SSL certificate on Citrix ADM or not. Defaults to True.
-            logger (Job): Job logger to notify users of progress.
+            job (Job): Job logger to notify users of progress.
         """
         if base_url.endswith("/"):
             base_url = base_url.rstrip("/")
@@ -33,7 +33,7 @@ class CitrixNitroClient:
             "Content-Type": "application/json",
         }
         self.verify = verify
-        self.log = logger
+        self.job = job
 
     def login(self):
         """Login to ADM/MAS and set authorization token to enable further communication."""
@@ -46,7 +46,7 @@ class CitrixNitroClient:
             session_id = response["login"][0]["sessionid"]
             self.headers["Cookie"] = f"SESSID={session_id}; path=/; SameSite=Lax; secure; HttpOnly"
         else:
-            self.log.logger.error("Error while logging into Citrix ADM. Please validate your configuration is correct.")
+            self.job.logger.error("Error while logging into Citrix ADM. Please validate your configuration is correct.")
             raise requests.exceptions.RequestException()
 
     def logout(self):
@@ -109,24 +109,24 @@ class CitrixNitroClient:
             _result = _result.json()
             if _result.get("errorcode") == 0:
                 return _result
-            self.log.logger.warning(f"Failure with request: {_result['message']}")
+            self.job.logger.warning(f"Failure with request: {_result['message']}")
         return {}
 
     def get_sites(self):
         """Gather all sites configured on MAS/ADM instance."""
-        self.log.logger.info("Getting sites from Citrix ADM.")
+            self.job.logger.info("Getting sites from Citrix ADM.")
         endpoint = "config"
         objecttype = "mps_datacenter"
         params = {"attrs": "city,zipcode,type,name,region,country,latitude,longitude,id"}
         result = self.request("GET", endpoint, objecttype, params=params)
         if result:
             return result[objecttype]
-        self.log.logger.error("Error getting sites from Citrix ADM.")
+            self.job.logger.error("Error getting sites from Citrix ADM.")
         return {}
 
     def get_devices(self):
         """Gather all devices registered to MAS/ADM instance."""
-        self.log.logger.info("Getting devices from Citrix ADM.")
+            self.job.logger.info("Getting devices from Citrix ADM.")
         endpoint = "config"
         objecttype = "managed_device"
         params = {
@@ -135,7 +135,7 @@ class CitrixNitroClient:
         result = self.request("GET", endpoint, objecttype, params=params)
         if result:
             return result[objecttype]
-        self.log.logger.error("Error getting devices from Citrix ADM.")
+        self.job.logger.error("Error getting devices from Citrix ADM.")
         return {}
 
     def get_nsip(self, adc):
@@ -149,7 +149,7 @@ class CitrixNitroClient:
         result = self.request("GET", endpoint, objecttype, params=params)
         if result:
             return result[objecttype]
-        self.log.logger.warning(f"Error getting nsip from {adc['hostname']}")
+            self.job.logger.error(f"Error getting nsip from {adc['hostname']}")
         return {}
 
     def get_nsip6(self, adc):
@@ -164,7 +164,7 @@ class CitrixNitroClient:
         if result:
             return result[objecttype]
         self.log.logger.warning(f"Error getting nsip6 from {adc['hostname']}")
-
+            self.job.logger.error(f"Error getting nsip6 from {adc['hostname']}")
         return {}
 
     def get_vlan_bindings(self, adc):
@@ -179,7 +179,7 @@ class CitrixNitroClient:
         if result:
             return result[objecttype]
         self.log.logger.warning(f"Error getting vlan bindings from {adc['hostname']}")
-
+            self.job.logger.error(f"Error getting vlan bindings from {adc['hostname']}")
         return {}
 
 
