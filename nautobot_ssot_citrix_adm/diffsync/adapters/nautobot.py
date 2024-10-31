@@ -8,7 +8,7 @@ from diffsync.enum import DiffSyncModelFlags
 from diffsync.exceptions import ObjectNotFound
 from django.db.models import ProtectedError
 from nautobot.dcim.models import Device as OrmDevice
-from nautobot.dcim.models import Interface, Location
+from nautobot.dcim.models import Interface, Location, SoftwareVersion
 from nautobot.extras.models import Job
 from nautobot.ipam.models import IPAddress, IPAddressToInterface, Prefix
 from nautobot.tenancy.models import Tenant
@@ -79,12 +79,6 @@ class NautobotAdapter(Adapter):
             if self.job.debug:
                 self.job.logger.info(f"Loading Device {dev.name} from Nautobot.")
             hanode = dev._custom_field_data.get("ha_node")
-            if dev.software_version:
-                self.get_or_instantiate(
-                    self.osversion,
-                    ids={"version": dev.software_version.version},
-                    attrs={"uuid": dev.software_version.id},
-                )
             new_dev = self.device(
                 name=dev.name,
                 model=dev.device_type.model,
@@ -100,6 +94,15 @@ class NautobotAdapter(Adapter):
             if self.tenant:
                 new_dev.model_flags = DiffSyncModelFlags.SKIP_UNMATCHED_DST
             self.add(new_dev)
+
+    def load_software_versions(self):
+        """Load Citrix SoftwareVersions from Nautobot into DiffSync models."""
+        for osver in SoftwareVersion.objects.filter(platform__manufacturer__name__icontains="Citrix"):
+            self.get_or_instantiate(
+                self.osversion,
+                ids={"version": osver.version},
+                attrs={"uuid": osver.id},
+            )
 
     def load_ports(self):
         """Load Interfaces from Nautobot into DiffSync models."""
@@ -200,6 +203,7 @@ class NautobotAdapter(Adapter):
         """Load data from Nautobot into DiffSync models."""
         self.load_sites()
         self.load_devices()
+        self.load_software_versions()
         self.load_ports()
         self.load_prefixes()
         self.load_addresses()
