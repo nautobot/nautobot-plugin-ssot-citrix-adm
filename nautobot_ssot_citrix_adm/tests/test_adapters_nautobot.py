@@ -55,6 +55,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
         self.ny_region.validated_save()
 
         site_type = LocationType.objects.get_or_create(name="Site", parent=region_type)[0]
+        site_type.content_types.add(ContentType.objects.get_for_model(Device))
         self.job.dc_loctype = site_type
         self.job.parent_location = self.ny_region
         self.hq_site = Location.objects.create(
@@ -135,7 +136,7 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             },
             {site.get_unique_id() for site in self.nb_adapter.get_all("datacenter")},
         )
-        self.job.logger.info.assert_called_once_with("Loading Site HQ from Nautobot.")
+        self.job.logger.info.assert_called_once_with("Loaded Site HQ from Nautobot.")
 
     def test_load_devices(self):
         """Test the load_devices() function."""

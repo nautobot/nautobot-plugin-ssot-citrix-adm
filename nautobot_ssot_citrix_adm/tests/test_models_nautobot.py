@@ -3,9 +3,10 @@
 from unittest.mock import MagicMock
 
 from diffsync import Adapter
+from django.contrib.contenttypes.models import ContentType
 from django.test import override_settings
 from nautobot.core.testing import TransactionTestCase
-from nautobot.dcim.models import Location, LocationType
+from nautobot.dcim.models import Device, Location, LocationType
 from nautobot.extras.models import Status
 
 from nautobot_ssot_citrix_adm.diffsync.models.nautobot import NautobotDatacenter
@@ -22,15 +23,18 @@ class TestNautobotDatacenter(TransactionTestCase):
         self.adapter.job.logger.warning = MagicMock()
         self.status_active = Status.objects.get(name="Active")
         self.test_dc = NautobotDatacenter(name="Test", region="", latitude=None, longitude=None, uuid=None)
-        self.global_region = Location.objects.create(
-            name="Global", location_type=LocationType.objects.get(name="Region"), status=self.status_active
-        )
+        region_lt = LocationType.objects.get_or_create(name="Region")[0]
+        self.global_region = Location.objects.create(name="Global", location_type=region_lt, status=self.status_active)
+        site_lt = LocationType.objects.get_or_create(name="Site", parent=region_lt)[0]
+        site_lt.content_types.add(ContentType.objects.get_for_model(Device))
         self.site_obj = Location.objects.create(
             name="HQ",
-            location_type=LocationType.objects.get(name="Site"),
+            location_type=site_lt,
             parent=self.global_region,
             status=self.status_active,
         )
+        self.adapter.job.dc_loctype = site_lt
+        self.adapter.job.parent_loc = None
 
     def test_create(self):
         """Validate the NautobotDatacenter create() method creates a Site."""

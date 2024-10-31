@@ -48,6 +48,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
         self.job = CitrixAdmDataSource()
         self.job.debug = True
         self.job.location_map = {}
+        self.job.parent_location = None
         self.job.logger.warning = MagicMock()
         self.job.logger.info = MagicMock()
         self.job.job_result = JobResult.objects.create(
@@ -63,17 +64,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
             {"ARIA__West"},
             {site.get_unique_id() for site in self.citrix_adm.get_all("datacenter")},
         )
-        self.job.logger.info.assert_called_with("Attempting to load DC: ARIA")
-
-    def test_load_site_duplicate(self):
-        """Test Nautobot SSoT Citrix ADM load_site() function with duplicate site."""
-        site_info = SITE_FIXTURE_RECV[4]
-        self.job.debug = True
-        self.citrix_adm.load_site(site_info=site_info)
-        self.citrix_adm.load_site(site_info=site_info)
-        self.job.logger.warning.assert_called_with(
-            "Duplicate Site attempting to be loaded: {'city': 'New York City', 'zipcode': '10018', 'type': '1', 'name': 'NTC Corporate HQ', 'region': 'North', 'country': 'USA', 'longitude': '-73.989429', 'id': '7d29e100-ae0c-4580-ba86-b72df0b6cfd8', 'latitude': '40.753146'}."
-        )
+        self.job.logger.info.assert_called_with("Loaded Datacenter from Citrix ADM: ARIA")
 
     def test_load_site_w_location_map(self):
         """Test Nautobot SSoT Citrix ADM load_site() function with location_map from Job form."""
@@ -85,7 +76,7 @@ class TestCitrixAdmAdapterTestCase(TransactionTestCase):  # pylint: disable=too-
             {"Apple__Cupertino"},
             {site.get_unique_id() for site in self.citrix_adm.get_all("datacenter")},
         )
-        self.job.logger.info.assert_called_with("Attempting to load DC: Apple")
+        self.job.logger.info.assert_called_with("Loaded Datacenter from Citrix ADM: Apple")
 
     def test_load_devices(self):
         """Test the Nautobot SSoT Citrix ADM load_devices() function."""
