@@ -184,7 +184,7 @@ class TestCitrixAdmClient(TestCase):
         adc = {"hostname": "test", "ip_address": ""}
         mock_request.return_value = {}
         actual = self.client.get_nsip(adc)
-        self.job.logger.warning.assert_called_once_with("Error getting nsip from test")
+        self.job.logger.error.assert_called_once_with("Error getting nsip from test")
         self.assertEqual(actual, {})
 
     @patch.object(CitrixNitroClient, "request")
@@ -202,7 +202,7 @@ class TestCitrixAdmClient(TestCase):
         adc = {"hostname": "test", "ip_address": ""}
         mock_request.return_value = {}
         actual = self.client.get_nsip6(adc)
-        self.job.logger.warning.assert_called_once_with("Error getting nsip6 from test")
+        self.job.logger.error.assert_called_once_with("Error getting nsip6 from test")
         self.assertEqual(actual, {})
 
     @patch.object(CitrixNitroClient, "request")
@@ -220,7 +220,7 @@ class TestCitrixAdmClient(TestCase):
         adc = {"hostname": "test", "ip_address": ""}
         mock_request.return_value = {}
         actual = self.client.get_vlan_bindings(adc)
-        self.job.logger.warning.assert_called_once_with("Error getting vlan bindings from test")
+        self.job.logger.error.assert_called_once_with("Error getting vlan bindings from test")
         self.assertEqual(actual, {})
 
     def test_parse_hostname_for_role_success(self):
