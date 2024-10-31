@@ -4,6 +4,7 @@ import re
 from typing import List, Optional, Tuple, Union
 
 import requests
+import urllib3
 from netutils.ip import ipaddress_interface, is_ip_within, netmask_to_cidr
 
 
@@ -33,6 +34,8 @@ class CitrixNitroClient:
             "Content-Type": "application/json",
         }
         self.verify = verify
+        if self.verify is False:
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         self.job = job
 
     def login(self):
