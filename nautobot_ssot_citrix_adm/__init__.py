@@ -7,14 +7,14 @@ except ImportError:
     # Python version < 3.8
     import importlib_metadata as metadata
 from nautobot.core.signals import nautobot_database_ready
-from nautobot.extras.plugins import PluginConfig
+from nautobot.extras.plugins import NautobotAppConfig
 
 from nautobot_ssot_citrix_adm.signals import nautobot_database_ready_callback
 
 __version__ = metadata.version(__name__)
 
 
-class NautobotSsotCitrixAdmConfig(PluginConfig):
+class NautobotSsotCitrixAdmConfig(NautobotAppConfig):
     """Plugin configuration for the nautobot_ssot_citrix_adm plugin."""
 
     name = "nautobot_ssot_citrix_adm"
