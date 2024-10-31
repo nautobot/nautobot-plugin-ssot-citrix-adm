@@ -28,6 +28,7 @@ class NautobotDatacenter(Datacenter):
     def create(cls, adapter, ids, attrs):
         """Create Site in Nautobot from NautobotDatacenter object."""
         status_active = Status.objects.get(name="Active")
+        parent_loc = None
         if adapter.job.dc_loctype.parent and ids.get("region"):
             parent_loc = Location.objects.get_or_create(
                 name=ids["region"], location_type=adapter.job.dc_loctype.parent, status=status_active
@@ -37,7 +38,7 @@ class NautobotDatacenter(Datacenter):
             return None
         new_site = Location(
             name=ids["name"],
-            parent=parent_loc if parent_loc else None,
+            parent=parent_loc,
             status=status_active,
             latitude=attrs["latitude"],
             longitude=attrs["longitude"],
