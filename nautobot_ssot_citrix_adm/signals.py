@@ -12,16 +12,11 @@ def nautobot_database_ready_callback(sender, *, apps, **kwargs):  # pylint: disa
     ContentType = apps.get_model("contenttypes", "ContentType")
     CustomField = apps.get_model("extras", "CustomField")
     Manufacturer = apps.get_model("dcim", "Manufacturer")
-    LocationType = apps.get_model("dcim", "LocationType")
     Device = apps.get_model("dcim", "Device")
     Interface = apps.get_model("dcim", "Interface")
     Prefix = apps.get_model("ipam", "Prefix")
     IPAddress = apps.get_model("ipam", "IPAddress")
     Platform = apps.get_model("dcim", "Platform")
-
-    region = LocationType.objects.update_or_create(name="Region", defaults={"nestable": True})[0]
-    site = LocationType.objects.update_or_create(name="Site", defaults={"parent": region})[0]
-    site.content_types.add(ContentType.objects.get_for_model(Device))
 
     citrix_manu, _ = Manufacturer.objects.update_or_create(name="Citrix")
     Platform.objects.update_or_create(
