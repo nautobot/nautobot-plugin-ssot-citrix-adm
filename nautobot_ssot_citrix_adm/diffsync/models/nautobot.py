@@ -249,7 +249,7 @@ class NautobotAddress(Address):
         """Create IP Address in Nautobot from NautobotAddress object."""
         new_ip = IPAddress(
             address=ids["address"],
-            parent=Prefix.objects.filter(network__net_contains=ids["address"]).last(),
+            parent=Prefix.objects.filter(network__net_contains=ids["address"].split("/")[0]).last(),
             status=Status.objects.get(name="Active"),
             namespace=(
                 Namespace.objects.get_or_create(name=attrs["tenant"])[0]
