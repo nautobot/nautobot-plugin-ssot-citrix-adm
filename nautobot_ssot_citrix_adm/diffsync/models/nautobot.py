@@ -114,7 +114,7 @@ class NautobotDevice(Device):
         if attrs.get("hanode"):
             new_device.custom_field_data["ha_node"] = attrs["hanode"]
         new_device.custom_field_data["system_of_record"] = "Citrix ADM"
-        new_device.custom_field_data["ssot_last_synchronized"] = datetime.today().date().isoformat()
+        new_device.custom_field_data["last_synced_from_sor"] = datetime.today().date().isoformat()
         new_device.validated_save()
         return super().create(adapter=adapter, ids=ids, attrs=attrs)
 
@@ -143,7 +143,7 @@ class NautobotDevice(Device):
         if "hanode" in attrs:
             device.custom_field_data["ha_node"] = attrs["hanode"]
         device.custom_field_data["system_of_record"] = "Citrix ADM"
-        device.custom_field_data["ssot_last_synchronized"] = datetime.today().date().isoformat()
+        device.custom_field_data["last_synced_from_sor"] = datetime.today().date().isoformat()
         device.validated_save()
         return super().update(attrs)
 
@@ -171,7 +171,7 @@ class NautobotPort(Port):
             mgmt_only=bool(ids["name"] == "Management"),
         )
         new_port.custom_field_data["system_of_record"] = "Citrix ADM"
-        new_port.custom_field_data["ssot_last_synchronized"] = datetime.today().date().isoformat()
+        new_port.custom_field_data["last_synced_from_sor"] = datetime.today().date().isoformat()
         new_port.validated_save()
         return super().create(adapter=adapter, ids=ids, attrs=attrs)
 
@@ -183,7 +183,7 @@ class NautobotPort(Port):
         if "description" in attrs:
             port.description = attrs["description"]
         port.custom_field_data["system_of_record"] = "Citrix ADM"
-        port.custom_field_data["ssot_last_synchronized"] = datetime.today().date().isoformat()
+        port.custom_field_data["last_synced_from_sor"] = datetime.today().date().isoformat()
         port.validated_save()
         return super().update(attrs)
 
@@ -212,7 +212,7 @@ class NautobotSubnet(Subnet):
             tenant=Tenant.objects.get(name=attrs["tenant"]) if attrs.get("tenant") else None,
         )
         _pf.custom_field_data.update({"system_of_record": "Citrix ADM"})
-        _pf.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
+        _pf.custom_field_data.update({"last_synced_from_sor": datetime.today().date().isoformat()})
         _pf.validated_save()
         return super().create(adapter=adapter, ids=ids, attrs=attrs)
 
@@ -225,7 +225,7 @@ class NautobotSubnet(Subnet):
             else:
                 pf.tenant = None
         pf.custom_field_data.update({"system_of_record": "Citrix ADM"})
-        pf.custom_field_data.update({"ssot_last_synchronized": datetime.today().date().isoformat()})
+        pf.custom_field_data.update({"last_synced_from_sor": datetime.today().date().isoformat()})
         pf.validated_save()
         return super().update(attrs)
 
@@ -265,7 +265,7 @@ class NautobotAddress(Address):
                 new_tag = Tag.objects.get(name=tag)
                 new_tag.content_types.add(ContentType.objects.get_for_model(NewDevice))
         new_ip.custom_field_data["system_of_record"] = "Citrix ADM"
-        new_ip.custom_field_data["ssot_last_synchronized"] = datetime.today().date().isoformat()
+        new_ip.custom_field_data["last_synced_from_sor"] = datetime.today().date().isoformat()
         new_ip.validated_save()
         return super().create(adapter=adapter, ids=ids, attrs=attrs)
 
@@ -285,7 +285,7 @@ class NautobotAddress(Address):
         else:
             addr.tags.clear()
         addr.custom_field_data["system_of_record"] = "Citrix ADM"
-        addr.custom_field_data["ssot_last_synchronized"] = datetime.today().date().isoformat()
+        addr.custom_field_data["last_synced_from_sor"] = datetime.today().date().isoformat()
         addr.validated_save()
         return super().update(attrs)
 
