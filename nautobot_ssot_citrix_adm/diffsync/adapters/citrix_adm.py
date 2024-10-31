@@ -102,24 +102,17 @@ class CitrixAdmAdapter(Adapter):
                 parent_loc = self.job.location_map[parent_loc]["name"]
         else:
             parent_loc = "Global"
-        try:
-            found_site = self.get(
-                self.datacenter,
-                {"name": site_info["name"], "region": parent_loc},
-            )
-            if found_site and self.job.debug:
-                self.job.logger.warning(f"Duplicate Site attempting to be loaded: {site_info}.")
-        except ObjectNotFound:
-            if self.job.debug:
-                self.job.logger.info(f"Attempting to load DC: {site_name}")
-            new_site = self.datacenter(
-                name=site_name,
-                region=parent_loc,
-                latitude=float(round(Decimal(site_info["latitude"] if site_info["latitude"] else 0.0), 6)),
-                longitude=float(round(Decimal(site_info["longitude"] if site_info["longitude"] else 0.0), 6)),
-                uuid=None,
-            )
-            self.add(new_site)
+        _, loaded = self.get_or_instantiate(
+            self.datacenter,
+            ids={"name": site_name, "region": parent_loc},
+            attrs={
+                "latitude": float(round(Decimal(site_info["latitude"] if site_info["latitude"] else 0.0), 6)),
+                "longitude": float(round(Decimal(site_info["longitude"] if site_info["longitude"] else 0.0), 6)),
+                "uuid": None,
+            },
+        )
+        if loaded and self.job.debug:
+            self.job.logger.info(f"Loaded Datacenter from Citrix ADM: {site_name}")
 
     def load_devices(self):
         """Load devices from Citrix ADM into DiffSync models."""
