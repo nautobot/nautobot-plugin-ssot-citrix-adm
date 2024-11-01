@@ -77,7 +77,6 @@ class NautobotDiffSyncTestCase(TransactionTestCase):
             status=self.status_active,
             tenant=test_tenant,
         )
-        core_router._custom_field_data["os_version"] = "1.2.3"  # pylint: disable=protected-access
         core_router._custom_field_data["system_of_record"] = "Citrix ADM"  # pylint: disable=protected-access
         core_router.validated_save()
         mgmt_intf = Interface.objects.create(
