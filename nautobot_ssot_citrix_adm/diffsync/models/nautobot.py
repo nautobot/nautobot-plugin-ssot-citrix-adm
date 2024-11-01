@@ -108,9 +108,9 @@ class NautobotDevice(Device):
         if attrs.get("tenant"):
             new_device.tenant = Tenant.objects.update_or_create(name=attrs["tenant"])[0]
         if attrs.get("version"):
-            new_device.software_version = SoftwareVersion.objects.get(
+            new_device.software_version = SoftwareVersion.objects.get_or_create(
                 version=attrs["version"], platform=citrix_platform
-            )
+            )[0]
         if attrs.get("hanode"):
             new_device.custom_field_data["ha_node"] = attrs["hanode"]
         new_device.custom_field_data["system_of_record"] = "Citrix ADM"
@@ -139,7 +139,12 @@ class NautobotDevice(Device):
             else:
                 device.tenant = None
         if "version" in attrs:
-            device.custom_field_data.update({"os_version": attrs["version"]})
+            if attrs.get("version"):
+                device.software_version = SoftwareVersion.objects.get_or_create(
+                    version=attrs["version"], platform=Platform.objects.get(name="citrix.adc")
+                )[0]
+            else:
+                device.software_version = None
         if "hanode" in attrs:
             device.custom_field_data["ha_node"] = attrs["hanode"]
         device.custom_field_data["system_of_record"] = "Citrix ADM"
