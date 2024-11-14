@@ -47,6 +47,12 @@ class CitrixAdmDataSource(DataSource, Job):  # pylint: disable=too-many-instance
         default={},
         required=False,
     )
+    hostname_mapping = JSONVar(
+        label="Hostname Mapping",
+        description="Mapping of Device hostname to Role. Ex: {'router01': 'router'.",
+        default={},
+        required=False,
+    )
     tenant = ObjectVar(model=Tenant, queryset=Tenant.objects.all(), display_field="display_name", required=False)
     debug = BooleanVar(description="Enable for more verbose debug logging", default=False)
 
@@ -103,6 +109,7 @@ class CitrixAdmDataSource(DataSource, Job):  # pylint: disable=too-many-instance
         self.dc_loctype = kwargs["dc_loctype"]
         self.parent_location = kwargs["parent_location"]
         self.location_map = kwargs["location_map"]
+        self.hostname_mapping = kwargs["hostname_mapping"]
         self.validate_job_settings()
         self.memory_profiling = memory_profiling
         super().run(dryrun=self.dryrun, memory_profiling=self.memory_profiling, *args, **kwargs)

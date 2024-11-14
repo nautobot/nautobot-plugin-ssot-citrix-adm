@@ -142,6 +142,5 @@ PLUGINS_CONFIG = {
     },
     "nautobot_ssot_citrix_adm": {
         "update_sites": is_truthy(os.getenv("NAUTOBOT_SSOT_CITRIX_ADM_UPDATE_SITES", True)),
-        "hostname_mapping": [],
     },
 }

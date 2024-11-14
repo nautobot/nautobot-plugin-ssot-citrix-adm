@@ -6,7 +6,6 @@ from typing import List, Optional
 
 from diffsync import Adapter
 from diffsync.exceptions import ObjectNotFound
-from django.conf import settings
 from nautobot.extras.choices import SecretsGroupAccessTypeChoices, SecretsGroupSecretTypeChoices
 from nautobot.extras.models import ExternalIntegration, Job
 from nautobot.tenancy.models import Tenant
@@ -29,8 +28,6 @@ from nautobot_ssot_citrix_adm.utils.citrix_adm import (
     parse_version,
     parse_vlan_bindings,
 )
-
-PLUGIN_CFG = settings.PLUGINS_CONFIG["nautobot_ssot_citrix_adm"]
 
 
 class CitrixAdmAdapter(Adapter):
@@ -135,9 +132,7 @@ class CitrixAdmAdapter(Adapter):
                     and "name" in self.job.location_map[site_name]
                 ):
                     site_name = self.job.location_map[site_name]["name"]
-                role = parse_hostname_for_role(
-                    hostname_map=PLUGIN_CFG.get("hostname_mapping"), device_hostname=dev["hostname"]
-                )
+                role = parse_hostname_for_role(hostname_map=self.job.hostname_mapping, device_hostname=dev["hostname"])
                 version = parse_version(dev["version"])
                 self.get_or_instantiate(self.osversion, ids={"version": version}, attrs={})
                 new_dev = self.device(
